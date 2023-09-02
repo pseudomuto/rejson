@@ -54,7 +54,6 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let keydir = cli.keydir.unwrap(); // TODO: Don't panic here
 
     match cli.command {
         Commands::Encrypt { file } => encrypt(file),
@@ -63,7 +62,7 @@ fn main() -> Result<()> {
             key_from_stdin,
             output,
         } => decrypt(file, key_from_stdin, output),
-        Commands::Generate { write } => generate(&keydir, write),
+        Commands::Generate { write } => generate(cli.keydir, write),
     }
 }
 
@@ -75,7 +74,7 @@ fn decrypt(_file: String, _pk_stdin: bool, _out: Option<String>) -> Result<()> {
     Ok(())
 }
 
-fn generate(keydir: &str, write: bool) -> Result<()> {
+fn generate(keydir: Option<String>, write: bool) -> Result<()> {
     let pair = KeyPair::generate().unwrap();
     println!("Public Key:");
     println!("{}", pair.public_key());
@@ -83,9 +82,11 @@ fn generate(keydir: &str, write: bool) -> Result<()> {
     if !write {
         println!("Private Key:");
         println!("{}", pair.private_key());
+        return Ok(());
     }
 
-    let path = std::path::Path::new(keydir).join(pair.public_key());
+    // TODO: Don't panic on missing keydir
+    let path = std::path::Path::new(&keydir.unwrap()).join(pair.public_key());
     std::fs::File::create(path)?
         .write_all(pair.private_key().as_bytes())
         .map_err(anyhow::Error::msg)
