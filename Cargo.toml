@@ -1,0 +1,23 @@
+[package]
+name = "rejson"
+version = "0.1.0"
+authors = ["David Muto <david.muto@gmail.com>"]
+description = "A command line utility for managing secrets"
+edition = "2021"
+
+[[bin]]
+name = "rejson"
+
+[dependencies]
+anyhow = "1.0"
+base64 = "0.21"
+clap = { version = "4.4.2", features = ["derive", "env"] }
+lazy_static = "1.4"
+nacl = "0.5"
+rand = { version = "0.8", features = ["std"] }
+regex = "1.9"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+assert_fs = "1.0.13"
+predicates = "3.0.3"
