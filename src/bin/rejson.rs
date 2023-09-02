@@ -1,4 +1,4 @@
-use std::{io::Write, path::PathBuf};
+use std::io::Write;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -71,7 +71,7 @@ fn encrypt(_files: Vec<String>) -> Result<()> {
     Ok(())
 }
 
-fn decrypt(_file: String, pk_stdin: bool, out: Option<String>) -> Result<()> {
+fn decrypt(_file: String, _pk_stdin: bool, _out: Option<String>) -> Result<()> {
     Ok(())
 }
 

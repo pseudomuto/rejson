@@ -11,20 +11,14 @@ use super::{
 pub struct Encryptor {
     /// The keypair used for encryption/decryption.
     keys: KeyPair,
-    /// The peer public key used for this invocation.
-    peer_public: Key,
     /// The (typically DH) shared/stream key.
     shared_key: Key,
 }
 
 impl Encryptor {
     /// Creates a new [Encryptor] using the supplied key paid, peer public key, and shared key.
-    pub fn new(keys: KeyPair, peer_public: Key, shared_key: Key) -> Self {
-        Self {
-            keys,
-            peer_public,
-            shared_key,
-        }
+    pub fn new(keys: KeyPair, shared_key: Key) -> Self {
+        Self { keys, shared_key }
     }
 
     /// Creates a new [Encryptor] from the given [KeyPair] and peer public key. A shared key is
@@ -37,11 +31,7 @@ impl Encryptor {
                 .try_into()?,
         );
 
-        Ok(Self {
-            keys,
-            peer_public,
-            shared_key,
-        })
+        Ok(Self { keys, shared_key })
     }
 
     /// Encrypts the given string returning the value to be stored in the EJSON file.
@@ -72,7 +62,6 @@ mod tests {
         let encryptor = Encryptor::create(keys.clone(), peer_key.clone()).unwrap();
 
         assert_eq!(keys, encryptor.keys);
-        assert_eq!(peer_key, encryptor.peer_public);
         assert_ne!(Key::default(), encryptor.shared_key);
     }
 
