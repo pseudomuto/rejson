@@ -3,5 +3,5 @@ mod encryptor;
 mod keys;
 mod message;
 
-pub use keys::Key;
-pub use keys::KeyPair;
+pub use keys::{Key, KeyPair};
+pub(crate) use message::Message;

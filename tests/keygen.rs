@@ -1,7 +1,8 @@
+use std::{fs, process::Command};
+
 use anyhow::Result;
 use assert_cmd::prelude::*;
 use predicates::prelude::*;
-use std::{fs, process::Command};
 
 #[test]
 fn generate_without_writing() -> Result<()> {
@@ -19,9 +20,9 @@ fn generate_and_write_file_to_keydir() -> Result<()> {
     let temp = assert_fs::TempDir::new()?;
 
     Command::cargo_bin("rejson")?
+        .arg("keygen")
         .arg("--keydir")
         .arg(temp.path())
-        .arg("keygen")
         .arg("--write")
         .assert()
         .success()

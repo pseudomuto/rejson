@@ -42,9 +42,7 @@ mod tests {
         let durable_key = KeyPair::generate().unwrap();
         let emphemeral_key = KeyPair::generate().unwrap();
 
-        let encryptor = emphemeral_key
-            .encryptor(durable_key.public.clone())
-            .unwrap();
+        let encryptor = emphemeral_key.encryptor(durable_key.public.clone()).unwrap();
         let decryptor = durable_key.decryptor();
 
         let plaintext = "My super secret value";

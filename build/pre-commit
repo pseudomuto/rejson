@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+main() {
+	echo "Running cargo fmt to check for style issues..."
+	local diff=$(cargo fmt -- --check)
+	local result=$?
+
+	if [[ ${result} -ne 0 ]]; then
+		echo 'There are some code style issues, run `cargo fmt` first.' 1>&2
+		exit 1
+	fi
+}
+
+main "$@"

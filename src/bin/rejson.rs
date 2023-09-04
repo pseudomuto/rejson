@@ -2,15 +2,11 @@ use std::io::Write;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-
-use rejson::{self, KeyPair};
+use rejson::{self, KeyPair, SecretsFile};
 
 #[derive(Parser)]
 #[command(author, about, version)]
 struct Cli {
-    #[clap(env = "EJSON_KEYDIR", long)]
-    keydir: Option<String>,
-
     #[command(subcommand)]
     command: Commands,
 }
@@ -46,6 +42,9 @@ enum Commands {
     /// Generate a new EJSON key pair.
     #[command(name = "keygen", alias = "g")]
     Generate {
+        #[arg(env = "EJSON_KEYDIR", long)]
+        keydir: Option<String>,
+
         /// Write the private key to the key dir.
         #[arg(short, long)]
         write: bool,
@@ -62,16 +61,26 @@ fn main() -> Result<()> {
             key_from_stdin,
             output,
         } => decrypt(file, key_from_stdin, output),
-        Commands::Generate { write } => generate(cli.keydir, write),
+        Commands::Generate { keydir, write } => generate(keydir, write),
     }
 }
 
-fn encrypt(_files: Vec<String>) -> Result<()> {
-    Ok(())
+fn encrypt(files: Vec<String>) -> Result<()> {
+    files.iter().try_for_each(|file_path| {
+        let mut secrets_file = SecretsFile::load(file_path)?;
+        secrets_file.transform(rejson::encrypt(&secrets_file)?)?;
+
+        let json = secrets_file.to_string();
+        let data = json.as_bytes();
+
+        std::fs::write(file_path, data)?;
+        println!("Wrote {} bytes to {}", data.len(), file_path);
+        Ok(())
+    })
 }
 
 fn decrypt(_file: String, _pk_stdin: bool, _out: Option<String>) -> Result<()> {
-    Ok(())
+    unimplemented!("Not implemented yet")
 }
 
 fn generate(keydir: Option<String>, write: bool) -> Result<()> {

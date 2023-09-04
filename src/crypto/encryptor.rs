@@ -24,12 +24,10 @@ impl Encryptor {
     /// Creates a new [Encryptor] from the given [KeyPair] and peer public key. A shared key is
     /// calculated from these values and used to construct the [Encryptor].
     pub fn create(keys: KeyPair, peer_public: Key) -> Result<Self> {
-        let shared_key = Key(
-            public_box::calc_dhshared_key(&peer_public.0, &keys.private.0)
-                .map_err(|e| anyhow::anyhow!(e.message))?
-                .as_slice()
-                .try_into()?,
-        );
+        let shared_key = Key(public_box::calc_dhshared_key(&peer_public.0, &keys.private.0)
+            .map_err(|e| anyhow::anyhow!(e.message))?
+            .as_slice()
+            .try_into()?);
 
         Ok(Self { keys, shared_key })
     }

@@ -1,8 +1,9 @@
+use std::{fmt, str::FromStr};
+
 use anyhow::{Context, Error};
 use base64::{engine::general_purpose, Engine as _};
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::{fmt, str::FromStr};
 
 use super::keys::{Key, Nonce};
 
@@ -56,9 +57,7 @@ impl FromStr for Message {
 
         let key = ENCODER.decode(&s[5..49]).context("decoding key")?;
         let nonce = ENCODER.decode(&s[50..82]).context("decoding nonce")?;
-        let value = ENCODER
-            .decode(&s[83..s.len() - 1])
-            .context("decoding value")?;
+        let value = ENCODER.decode(&s[83..s.len() - 1]).context("decoding value")?;
 
         Ok(Self {
             version: s[3..4].parse()?,
@@ -73,8 +72,7 @@ impl FromStr for Message {
 mod test {
     use super::*;
 
-    const VALID_KEY: &str =
-        "EJ[1:AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=:AgICAgICAgICAgICAgICAgICAgICAgIC:AwMD]";
+    const VALID_KEY: &str = "EJ[1:AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=:AgICAgICAgICAgICAgICAgICAgICAgIC:AwMD]";
 
     #[test]
     fn is_valid() {

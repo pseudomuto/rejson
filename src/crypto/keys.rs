@@ -1,7 +1,8 @@
-use anyhow::Result;
+use std::{fmt, str::FromStr};
+
+use anyhow::{anyhow, Result};
 use nacl::public_box;
 use rand::RngCore;
-use std::fmt;
 
 use super::{decryptor::Decryptor, encryptor::Encryptor};
 
@@ -34,6 +35,29 @@ impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0.map(|b| format!("{:02x}", b)).join(""))
     }
+}
+
+impl FromStr for Key {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        if s.len() != 2 * KEY_SIZE {
+            return Err(anyhow!("InvalidKey (bad length)"));
+        }
+
+        Ok(Self(bytes_from_hex(s).as_slice().try_into()?))
+    }
+}
+
+fn bytes_from_hex(s: &str) -> Vec<u8> {
+    (0..s.len())
+        .step_by(2)
+        .map(|i| {
+            s.get(i..i + 2)
+                .and_then(|sub| u8::from_str_radix(sub, 16).ok())
+                .unwrap()
+        })
+        .collect()
 }
 
 /// A newtype representing a nonce (24-byte array)
@@ -79,8 +103,7 @@ impl KeyPair {
     pub fn generate() -> Result<Self> {
         // Generate a random private key. Then using the private key, generate a corresponding public key.
         let priv_key = Key::random();
-        let pub_key =
-            public_box::generate_pubkey(&priv_key.0).map_err(|e| anyhow::anyhow!(e.message))?;
+        let pub_key = public_box::generate_pubkey(&priv_key.0).map_err(|e| anyhow!(e.message))?;
         Ok(Self::new(Key(pub_key.as_slice().try_into()?), priv_key))
     }
 
@@ -108,6 +131,16 @@ impl KeyPair {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn key_serde() {
+        let key = Key::random();
+        let key_str = key.to_string();
+        assert_eq!(2 * KEY_SIZE, key_str.len());
+
+        let parsed = key_str.parse().unwrap();
+        assert_eq!(key, parsed);
+    }
 
     #[test]
     fn new() {
