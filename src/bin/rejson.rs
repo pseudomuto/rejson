@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{fs, io::Write};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -30,6 +30,9 @@ enum Commands {
         /// The file to decrypt.
         file: String,
 
+        #[arg(env = "EJSON_KEYDIR", long)]
+        keydir: Option<String>,
+
         /// Read the private key from stdin.
         #[arg(long)]
         key_from_stdin: bool,
@@ -58,9 +61,10 @@ fn main() -> Result<()> {
         Commands::Encrypt { file } => encrypt(file),
         Commands::Decrypt {
             file,
+            keydir,
             key_from_stdin,
             output,
-        } => decrypt(file, key_from_stdin, output),
+        } => decrypt(file, keydir, key_from_stdin, output),
         Commands::Generate { keydir, write } => generate(keydir, write),
     }
 }
@@ -73,17 +77,42 @@ fn encrypt(files: Vec<String>) -> Result<()> {
         let json = secrets_file.to_string();
         let data = json.as_bytes();
 
-        std::fs::write(file_path, data)?;
+        fs::write(file_path, data)?;
         println!("Wrote {} bytes to {}", data.len(), file_path);
         Ok(())
     })
 }
 
-fn decrypt(_file: String, _pk_stdin: bool, _out: Option<String>) -> Result<()> {
-    unimplemented!("Not implemented yet")
+fn decrypt(file: String, keydir: Option<String>, key_from_stdin: bool, _out: Option<String>) -> Result<()> {
+    let mut secrets_file = SecretsFile::load(file)?;
+
+    let private_key = match keydir {
+        // Load the key from the keydir.
+        Some(keydir) => rejson::load_private_key(&secrets_file, &keydir)?,
+        // Read the key from stdin.
+        None => {
+            if key_from_stdin {
+                let mut buffer = String::new();
+                std::io::stdin().read_line(&mut buffer)?;
+                buffer.trim().parse()?
+            } else {
+                return Err(anyhow::anyhow!("Either --keydir or --key-from-std must be supplied"));
+            }
+        }
+    };
+
+    secrets_file.transform(rejson::decrypt(&secrets_file, private_key)?)?;
+    println!("{}", secrets_file);
+    Ok(())
 }
 
 fn generate(keydir: Option<String>, write: bool) -> Result<()> {
+    if write && keydir.is_none() {
+        return Err(anyhow::anyhow!(
+            "Either EJSON_KEYDIR must be set or --keydir must be supplied"
+        ));
+    }
+
     let pair = KeyPair::generate().unwrap();
     println!("Public Key:");
     println!("{}", pair.public_key());
@@ -94,7 +123,6 @@ fn generate(keydir: Option<String>, write: bool) -> Result<()> {
         return Ok(());
     }
 
-    // TODO: Don't panic on missing keydir
     let path = std::path::Path::new(&keydir.unwrap()).join(pair.public_key());
     std::fs::File::create(path)?
         .write_all(pair.private_key().as_bytes())

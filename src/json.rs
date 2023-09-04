@@ -8,6 +8,11 @@ use crate::crypto::Key;
 const PK_KEY: &str = "_public_key";
 const IGNORE_PREFIX: &str = "_";
 
+/// A trait alias for Fn(String) -> Result<String>.
+///
+/// Transform describes a function used to do transform an eligible value from an EJSON document.
+pub trait Transform = Fn(String) -> Result<String>;
+
 #[derive(Debug)]
 pub struct SecretsFile {
     value: Value,
@@ -35,10 +40,7 @@ impl SecretsFile {
     /// new value to be used in it's place.
     ///
     /// This function transforms the values in place by mutating the underlying structure.
-    pub fn transform<F>(&mut self, transformer: F) -> Result<()>
-    where
-        F: Fn(String) -> Result<String>,
-    {
+    pub fn transform<F: Transform>(&mut self, transformer: F) -> Result<()> {
         self.value
             .as_object_mut()
             .unwrap()
@@ -67,10 +69,7 @@ impl FromStr for SecretsFile {
     }
 }
 
-fn transform<F>(key: &str, value: &mut Value, tfn: &F) -> Result<()>
-where
-    F: Fn(String) -> Result<String>,
-{
+fn transform<F: Transform>(key: &str, value: &mut Value, tfn: &F) -> Result<()> {
     match value {
         Value::String(v) => {
             // Only interested in string values who's keys do not start with an underscore as
