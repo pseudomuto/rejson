@@ -15,7 +15,7 @@ jobs:
         run: |
           rustup install nightly
           rustup override set nightly
-          rustup component add clippy
+          rustup component add clippy rustfmt
 
       - name: Toolchain info
         run: |
