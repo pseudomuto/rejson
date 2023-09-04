@@ -1,9 +1,10 @@
 [package]
 name = "rejson"
-version = "0.1.0"
+version = "0.1.0-pre"
 authors = ["David Muto <david.muto@gmail.com>"]
 description = "A command line utility for managing secrets"
 edition = "2021"
+license = "MIT"
 
 [[bin]]
 name = "rejson"
