@@ -13,3 +13,23 @@ innovation here other than needing Rust bindings and wanting a few extra feature
 ```
 ln -s -f ../../build/pre-commit .git/hooks/pre-commit
 ```
+
+## Usage
+
+See `rejson -h` or (`cargo run -- -h`) for usage details.
+
+### Docker
+
+A docker image is published for each release of rEJSON. Usage is similar to using the binary, only the `/keys` and
+`/files` volumes are required for encrypt/decrypt functionality.
+
+```
+# generate a new key pair
+docker run --rm -it rejson:0.1.0 keygen
+
+# decrypt a file to stdout
+docker run --rm -it \
+  -v ~/.config/ejson:/keys \
+  -v $(pwd)/tmp:/files \
+  rejson:0.1.0 decrypt /files/secrets.ejson
+```
