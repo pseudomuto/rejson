@@ -2,9 +2,12 @@
 name = "rejson"
 version = "0.1.0-pre"
 authors = ["David Muto <david.muto@gmail.com>"]
+categories = ["command-line-utilities"]
 description = "A command line utility for managing secrets"
 edition = "2021"
+homepage = "https://github.com/pseudomuto/rejson"
 license = "MIT"
+repository = "https://github.com/pseudomuto/rejson"
 
 [[bin]]
 name = "rejson"
