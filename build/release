@@ -19,7 +19,7 @@ main() {
   # Commit and tag.
   git commit -am "Release v${version}"
   git tag -sm "Release v${version}" "v${version}"
-  git push --tags
+  git push --atomic origin main "v${version}"
 }
 
 main "$@"
