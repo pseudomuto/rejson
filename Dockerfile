@@ -2,7 +2,7 @@
 FROM rustlang/rust:nightly-alpine as build
 RUN apk --update --no-cache add ca-certificates=20230506-r0 musl-dev=1.2.3-r5
 WORKDIR /app
-COPY Cargo.toml .
+COPY Cargo.toml README.md ./
 COPY src/ ./src/
 RUN cargo build --release
 
