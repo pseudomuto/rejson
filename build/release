@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+################################################################################
+# Sets the version in Cargo.toml, commits the change, tags this commit and
+# pushes to origin. This will trigger the release pipeline in GitHub which will
+# handle the rest.
+#
+# Usage: $0 <new_version>
+################################################################################
+
+main() {
+  local version="${1}"
+
+  # Update cargo file with new version (replace only the first version found).
+  cat Cargo.toml | sed "1,/version/s/version = \".*\"/version = \"${version}\"/" > Cargo.toml.new
+  mv Cargo.toml.new Cargo.toml
+
+  # Commit and tag.
+  git commit -am "Release v${version}"
+  git tag -sm "Release v${version}" "v${version}"
+  git push --tags
+}
+
+main "$@"

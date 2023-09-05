@@ -18,6 +18,9 @@ impl Decryptor {
     /// Decrypts the given ciphertext into the original plaintext. The ciphertext is expected to be
     /// a value previously encrypted by EJSON (serialized boxed message).
     ///
+    /// If the given [KeyPair] is not the same that was used to encrypt the ciphertext, as you
+    /// might expect this will return an error.
+    ///
     /// NB: Unlike encryption, decryption does not required a shared key.
     pub fn decrypt<S: AsRef<str>>(&self, ciphertext: S) -> Result<String> {
         let message: Message = ciphertext.as_ref().parse()?;

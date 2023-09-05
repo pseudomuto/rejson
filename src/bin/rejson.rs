@@ -72,6 +72,7 @@ fn main() -> Result<()> {
 fn encrypt(files: Vec<String>) -> Result<()> {
     files.iter().try_for_each(|file_path| {
         let mut secrets_file = SecretsFile::load(file_path)?;
+        secrets_file.transform(rejson::compact()?)?;
         secrets_file.transform(rejson::encrypt(&secrets_file)?)?;
 
         let json = secrets_file.to_string();
