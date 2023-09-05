@@ -100,9 +100,12 @@ ln -s -f ../../build/pre-commit .git/hooks/pre-commit
 
 ### Cutting a New release
 
+Run `build/release`. This will:
+
 * Update version in Cargo.toml
 * Create a new commit with the message "Release v<version>"
 * `git tag -sm "Release v<version" v<version>`
 * `git push --tags`
 
-This will publish the crate and the corresponding docker image.
+From there, the release pipeline will publish the crate and the corresponding docker image.
+
