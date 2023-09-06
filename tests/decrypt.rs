@@ -2,6 +2,8 @@ use std::fs;
 
 use anyhow::Result;
 use assert_cmd::Command;
+use assert_fs::prelude::*;
+use predicates::prelude::*;
 
 const PUB_KEY: &str = "b595226c62427adbfc4a809cd7577488a6d402b2f930e1d603164ae3191a616e";
 const PRIV_KEY: &str = "88649a9e83f8f1984ad35ac8e8e86529aab518572c0341f46d1e0bc97f676f2b";
@@ -79,6 +81,40 @@ fn decrypt_key_from_stdin() -> Result<()> {
         .assert()
         .success()
         .stdout(predicates::str::contains(r#""some": "secret""#));
+
+    Ok(())
+}
+
+#[test]
+fn decrypt_to_file() -> Result<()> {
+    let file = assert_fs::NamedTempFile::new("secrets.ejson")?;
+    let out_file = assert_fs::NamedTempFile::new("secrets.json")?;
+
+    fs::write(
+        file.path(),
+        serde_json::json!({
+            "_public_key": PUB_KEY,
+            "some":"EJ[1:l6yw664nxaddSXGiWUZfuVeoUSpTFHzqAyCpfF8Awxc=:xOfucLDkACGlPCyJ6QViggEidVswUlsH:B/f3DJMkdZHF+Wu9F6XUFwuTmxyfBA==]"
+        })
+        .to_string(),
+    )?;
+
+    Command::cargo_bin("rejson")?
+        .arg("decrypt")
+        .arg(file.path())
+        .arg("--key-from-stdin")
+        .arg("--strip-key")
+        .arg("--out")
+        .arg(out_file.path())
+        .write_stdin(PRIV_KEY)
+        .assert()
+        .success();
+
+    // decrypted file is decrypted
+    out_file.assert(predicates::str::contains(r#""some": "secret""#));
+
+    // doesn't include _public_key
+    out_file.assert(predicates::str::contains("_public_key").not());
 
     Ok(())
 }

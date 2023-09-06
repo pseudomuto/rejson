@@ -39,7 +39,7 @@ enum Commands {
 
         /// If given, write the decrypted file to FILE rather than stdout.
         #[arg(short, long)]
-        output: Option<String>,
+        out: Option<String>,
 
         /// Omit the _public_key from the result.
         #[arg(short, long)]
@@ -67,9 +67,9 @@ fn main() -> Result<()> {
             file,
             keydir,
             key_from_stdin,
-            output,
+            out,
             strip_key,
-        } => decrypt(file, keydir, key_from_stdin, output, strip_key),
+        } => decrypt(file, keydir, key_from_stdin, out, strip_key),
         Commands::Generate { keydir, write } => generate(keydir, write),
     }
 }
@@ -93,7 +93,7 @@ fn decrypt(
     file: String,
     keydir: Option<String>,
     key_from_stdin: bool,
-    _out: Option<String>,
+    out: Option<String>,
     strip_key: bool,
 ) -> Result<()> {
     let mut secrets_file = SecretsFile::load(file)?;
@@ -122,7 +122,12 @@ fn decrypt(
         secrets_file = secrets_file.without_public_key();
     }
 
-    println!("{}", secrets_file);
+    if let Some(path) = out {
+        fs::write(path, secrets_file.to_string())?;
+    } else {
+        println!("{}", secrets_file);
+    }
+
     Ok(())
 }
 
