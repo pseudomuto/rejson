@@ -40,6 +40,10 @@ enum Commands {
         /// If given, write the decrypted file to FILE rather than stdout.
         #[arg(short, long)]
         output: Option<String>,
+
+        /// Omit the _public_key from the result.
+        #[arg(short, long)]
+        strip_key: bool,
     },
 
     /// Generate a new EJSON key pair.
@@ -64,7 +68,8 @@ fn main() -> Result<()> {
             keydir,
             key_from_stdin,
             output,
-        } => decrypt(file, keydir, key_from_stdin, output),
+            strip_key,
+        } => decrypt(file, keydir, key_from_stdin, output, strip_key),
         Commands::Generate { keydir, write } => generate(keydir, write),
     }
 }
@@ -84,7 +89,13 @@ fn encrypt(files: Vec<String>) -> Result<()> {
     })
 }
 
-fn decrypt(file: String, keydir: Option<String>, key_from_stdin: bool, _out: Option<String>) -> Result<()> {
+fn decrypt(
+    file: String,
+    keydir: Option<String>,
+    key_from_stdin: bool,
+    _out: Option<String>,
+    strip_key: bool,
+) -> Result<()> {
     let mut secrets_file = SecretsFile::load(file)?;
 
     let private_key = match keydir {
@@ -103,6 +114,14 @@ fn decrypt(file: String, keydir: Option<String>, key_from_stdin: bool, _out: Opt
     };
 
     secrets_file.transform(rejson::decrypt(&secrets_file, private_key)?)?;
+
+    if strip_key {
+        // Useful for things like exporting tfvars without wanting to see the warning
+        // about an unknown variable. Clearly you could do this on the CLI, but we've
+        // got a tool, so you know...make it do what you want.
+        secrets_file = secrets_file.without_public_key();
+    }
+
     println!("{}", secrets_file);
     Ok(())
 }

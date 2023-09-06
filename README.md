@@ -21,6 +21,18 @@ innovation here other than needing Rust bindings and wanting a few extra feature
 [Salsa20]: http://en.wikipedia.org/wiki/Salsa20
 [EJSON]: https://github.com/Shopify/ejson
 
+## Install
+
+`cargo install rejson`
+
+Since this is a drop-in replacement for `ejson` you can add `alias ejson="rejson"` if you like. The expectation is that
+this is 100% compatible with `ejson` and it only additive. If that's not the case, it's a bug, and I'd appreciate you 
+filing an issue.
+
+### Additions to EJSON
+
+* A `--strip-key` flag on `decrypt` which will remove `_public_key` from the result.
+
 ## Usage
 
 ### CLI

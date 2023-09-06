@@ -47,6 +47,13 @@ impl SecretsFile {
             .iter_mut()
             .try_for_each(|(k, v)| transform(k, v, &transformer))
     }
+
+    /// Returns a new [SecretsFile] that is a clone of this one without the _public_key field.
+    pub fn without_public_key(&self) -> Self {
+        let mut value = self.value.clone();
+        value.as_object_mut().unwrap().remove("_public_key");
+        Self { value }
+    }
 }
 
 impl fmt::Display for SecretsFile {
@@ -159,5 +166,23 @@ mod test {
         let mut parser = SecretsFile { value: data };
         assert!(parser.transform(|_| Ok("Encrypted".to_string())).is_ok());
         assert_eq!(exp.to_string(), parser.value.to_string());
+    }
+
+    #[test]
+    fn strip_key() {
+        let data = json!({
+          "_public_key": "anything",
+          "environment": {
+            "test":"value",
+            "_a": {
+              "b": "n",
+              "_c": "c"
+            }
+          },
+          "other": "key"
+        });
+
+        let parser = SecretsFile { value: data }.without_public_key();
+        assert!(parser.value.get("_public_key").is_none());
     }
 }
