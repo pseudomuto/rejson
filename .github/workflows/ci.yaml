@@ -15,7 +15,8 @@ jobs:
         run: |
           rustup install nightly
           rustup override set nightly
-          rustup component add clippy rustfmt
+          rustup component add clippy llvm-tools-preview rustfmt
+          cargo install cargo-llvm-cov
 
       - name: Toolchain info
         run: |
@@ -31,7 +32,8 @@ jobs:
       - name: Test
         run: |
           cargo check
-          cargo test --all
+          cargo llvm-cov
+          cargo test --doc
 
       - name: Build
         run: |

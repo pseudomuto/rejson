@@ -32,6 +32,7 @@ filing an issue.
 ### Additions to EJSON
 
 * A `--strip-key` flag on `decrypt` which will remove `_public_key` from the result.
+* `env` command which will export all keys under the top-level `environment` key.
 
 ## Usage
 
@@ -48,11 +49,23 @@ Commands:
   encrypt  Encrypt one or more EJSON files
   decrypt  Decrypt an EJSON file
   keygen   Generate a new EJSON key pair
+  env      Export the all scalar values under the "environment" key
   help     Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
+```
+
+To export all environment values in the environment key, run `eval $(rejson env secrets.ejson)`.
+
+```ignore
+{
+  "_public_key": "...",
+  "environment": {
+    "SOME_KEY": "SOME_VALUE"
+  }
+}
 ```
 
 ### Docker
