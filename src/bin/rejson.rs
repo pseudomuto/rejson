@@ -2,7 +2,10 @@ use std::{fs, io::Write};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use rejson::{self, KeyPair, SecretsFile};
+use rejson::{self, Key, KeyPair, SecretsFile};
+
+/// Key for export command.
+const ENV_KEY: &str = "environment";
 
 #[derive(Parser)]
 #[command(author, about, version)]
@@ -47,14 +50,27 @@ enum Commands {
     },
 
     /// Generate a new EJSON key pair.
-    #[command(name = "keygen", alias = "g")]
-    Generate {
+    #[command(alias = "g")]
+    Keygen {
         #[arg(env = "EJSON_KEYDIR", long)]
         keydir: Option<String>,
 
         /// Write the private key to the key dir.
         #[arg(short, long)]
         write: bool,
+    },
+
+    /// Export the all values under the "environment" key.
+    Env {
+        /// The file to decrypt.
+        file: String,
+
+        #[arg(env = "EJSON_KEYDIR", long)]
+        keydir: Option<String>,
+
+        /// Read the private key from stdin.
+        #[arg(long)]
+        key_from_stdin: bool,
     },
 }
 
@@ -70,7 +86,12 @@ fn main() -> Result<()> {
             out,
             strip_key,
         } => decrypt(file, keydir, key_from_stdin, out, strip_key),
-        Commands::Generate { keydir, write } => generate(keydir, write),
+        Commands::Keygen { keydir, write } => keygen(keydir, write),
+        Commands::Env {
+            file,
+            keydir,
+            key_from_stdin,
+        } => export_env(file, keydir, key_from_stdin),
     }
 }
 
@@ -98,21 +119,7 @@ fn decrypt(
 ) -> Result<()> {
     let mut secrets_file = SecretsFile::load(file)?;
 
-    let private_key = match keydir {
-        // Load the key from the keydir.
-        Some(keydir) => rejson::load_private_key(&secrets_file, &keydir)?,
-        // Read the key from stdin.
-        None => {
-            if key_from_stdin {
-                let mut buffer = String::new();
-                std::io::stdin().read_line(&mut buffer)?;
-                buffer.trim().parse()?
-            } else {
-                return Err(anyhow::anyhow!("Either --keydir or --key-from-std must be supplied"));
-            }
-        }
-    };
-
+    let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
     secrets_file.transform(rejson::decrypt(&secrets_file, private_key)?)?;
 
     if strip_key {
@@ -131,7 +138,7 @@ fn decrypt(
     Ok(())
 }
 
-fn generate(keydir: Option<String>, write: bool) -> Result<()> {
+fn keygen(keydir: Option<String>, write: bool) -> Result<()> {
     if write && keydir.is_none() {
         return Err(anyhow::anyhow!(
             "Either EJSON_KEYDIR must be set or --keydir must be supplied"
@@ -154,7 +161,43 @@ fn generate(keydir: Option<String>, write: bool) -> Result<()> {
         .map_err(anyhow::Error::msg)
 }
 
+fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool) -> Result<()> {
+    let mut secrets_file = SecretsFile::load(file)?;
+
+    let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
+    secrets_file.transform(rejson::decrypt(&secrets_file, private_key)?)?;
+
+    match secrets_file.children(ENV_KEY) {
+        Some(map) => map.into_iter().for_each(|(k, v)| {
+            println!("export {}={}", k, shell_escape::escape(v.into()));
+        }),
+        None => eprintln!("No {} key found. Nothing to export.", ENV_KEY),
+    }
+
+    Ok(())
+}
+
+/// Load the private key from the keydir or stdin.
+fn load_private_key(secrets_file: &SecretsFile, keydir: Option<String>, key_from_stdin: bool) -> Result<Key> {
+    let private_key = match keydir {
+        // Load the key from the keydir.
+        Some(keydir) => rejson::load_private_key(secrets_file, &keydir)?,
+        // Read the key from stdin.
+        None => {
+            if key_from_stdin {
+                let mut buffer = String::new();
+                std::io::stdin().read_line(&mut buffer)?;
+                buffer.trim().parse()?
+            } else {
+                return Err(anyhow::anyhow!("Either --keydir or --key-from-std must be supplied"));
+            }
+        }
+    };
+
+    Ok(private_key)
+}
 #[test]
+
 fn verify_cli() {
     use clap::CommandFactory;
     Cli::command().debug_assert()

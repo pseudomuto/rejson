@@ -1,4 +1,4 @@
-use std::{fmt, path::Path, str::FromStr};
+use std::{collections::HashMap, fmt, path::Path, str::FromStr};
 
 use anyhow::Result;
 use serde_json::Value;
@@ -46,6 +46,23 @@ impl SecretsFile {
             .unwrap()
             .iter_mut()
             .try_for_each(|(k, v)| transform(k, v, &transformer))
+    }
+
+    /// Returns a map of all direct children of the supplied key with scalar values.
+    pub fn children(&self, root_key: &str) -> Option<HashMap<&str, &str>> {
+        self.value.get(root_key).map(|value| {
+            value
+                .as_object()
+                .unwrap()
+                .iter()
+                .fold(HashMap::new(), |mut acc, (key, value)| {
+                    if value.is_string() {
+                        acc.insert(key.as_str(), value.as_str().unwrap());
+                    }
+
+                    acc
+                })
+        })
     }
 
     /// Returns a new [SecretsFile] that is a clone of this one without the _public_key field.
@@ -163,13 +180,35 @@ mod test {
           "other": "Encrypted"
         });
 
-        let mut parser = SecretsFile { value: data };
-        assert!(parser.transform(|_| Ok("Encrypted".to_string())).is_ok());
-        assert_eq!(exp.to_string(), parser.value.to_string());
+        let mut file = SecretsFile { value: data };
+        assert!(file.transform(|_| Ok("Encrypted".to_string())).is_ok());
+        assert_eq!(exp.to_string(), file.value.to_string());
     }
 
     #[test]
-    fn strip_key() {
+    fn children() {
+        let data = json!({
+          "_public_key": "anything",
+          "environment": {
+            "test":"value",
+            "_a": {
+              "b": "n",
+              "_c": "c"
+            },
+            "other": "thing"
+          },
+          "other": "key"
+        });
+
+        let file = SecretsFile { value: data };
+        let env = file.children("environment").unwrap();
+        assert_eq!(HashMap::from([("test", "value"), ("other", "thing"),]), env);
+
+        assert!(file.children("wat").is_none());
+    }
+
+    #[test]
+    fn without_public_key() {
         let data = json!({
           "_public_key": "anything",
           "environment": {
@@ -182,7 +221,7 @@ mod test {
           "other": "key"
         });
 
-        let parser = SecretsFile { value: data }.without_public_key();
-        assert!(parser.value.get("_public_key").is_none());
+        let file = SecretsFile { value: data }.without_public_key();
+        assert!(file.value.get("_public_key").is_none());
     }
 }
