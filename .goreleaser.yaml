@@ -1,0 +1,45 @@
+project_name: rejson
+
+builds:
+  - main: ./build/sentinel.go
+    targets:
+      - darwin_arm64
+      - linux_amd64
+      - linux_arm64
+    hooks:
+      post:
+        - cmd: sh build/cross {{.Target}}
+          output: true
+
+release:
+  draft: true
+  header: |
+    ## Release {{.ProjectName}} v{{.Version}}
+
+dockers:
+  - image_templates:
+      - pseudomuto/{{.ProjectName}}:latest
+      - pseudomuto/{{.ProjectName}}:{{.Version}}
+      - pseudomuto/{{.ProjectName}}:{{.Major}}
+      - pseudomuto/{{.ProjectName}}:{{.Major}}.{{.Minor}}
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+    extra_files:
+      - src
+      - Cargo.toml
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}"
+
+changelog:
+  use: github
+  sort: asc

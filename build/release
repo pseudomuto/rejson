@@ -10,16 +10,16 @@ set -euo pipefail
 ################################################################################
 
 main() {
-  local version="${1}"
+	local version="${1}"
 
-  # Update cargo file with new version (replace only the first version found).
-  cat Cargo.toml | sed "1,/version/s/version = \".*\"/version = \"${version}\"/" > Cargo.toml.new
-  mv Cargo.toml.new Cargo.toml
+	# Update cargo file with new version (replace only the first version found).
+	cat Cargo.toml | sed "1,/version/s/version = \".*\"/version = \"${version}\"/" >Cargo.toml.new
+	mv Cargo.toml.new Cargo.toml
 
-  # Commit and tag.
-  git commit -am "Release v${version}"
-  git tag -sm "Release v${version}" "v${version}"
-  git push --atomic origin main "v${version}"
+	# Commit and tag.
+	git commit -am "Release v${version}"
+	git tag -sm "Release v${version}" "v${version}"
+	git push --atomic origin main "v${version}"
 }
 
 main "$@"

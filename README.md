@@ -23,6 +23,14 @@ innovation here other than needing Rust bindings and wanting a few extra feature
 
 ## Install
 
+**From Releases**
+
+```
+curl -fsSL https://github.com/pseudomuto/rejson/releases/download/v0.2.0/rejson_0.2.0_$(uname -s)_$(uname -m).tar.gz | tar xzf -
+```
+
+**With Cargo**
+
 `cargo install rejson`
 
 Since this is a drop-in replacement for `ejson` you can add `alias ejson="rejson"` if you like. The expectation is that
@@ -132,5 +140,13 @@ Run `build/release`. This will:
 * `git tag -sm "Release v<version" v<version>`
 * `git push --tags`
 
-From there, the release pipeline will publish the crate and the corresponding docker image.
+Once the release pipeline has finished and published the crate, run the following to create the GitHub release with
+attached binaries, etc.
+
+```
+goreleaser release --clean
+```
+
+> Yes, I've hacked goreleaser into thinking this is a go project so I can leverage it for running cross, publishing docker
+images, and setting up GitHub releases.
 
