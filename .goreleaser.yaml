@@ -5,6 +5,7 @@ builds:
     targets:
       - darwin_arm64
       - linux_amd64
+      - linux_amd64_v2
       - linux_arm64
     hooks:
       post:
@@ -15,6 +16,8 @@ release:
   draft: true
   header: |
     ## Release {{.ProjectName}} v{{.Version}}
+  footer: |
+    > linux_amd64_v2 package contains a binary built against musl rather than libgcc. This is the package you should use if running on alpine.
 
 dockers:
   - image_templates:

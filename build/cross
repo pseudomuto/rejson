@@ -11,6 +11,9 @@ main() {
 	linux_amd64_v1)
 		build_arch "x86_64-unknown-linux-gnu" "rejson_${1}"
 		;;
+	linux_amd64_v2)
+		build_arch "x86_64-unknown-linux-musl" "rejson_${1}"
+		;;
 	linux_arm64)
 		build_arch "aarch64-unknown-linux-gnu" "rejson_${1}"
 		;;
