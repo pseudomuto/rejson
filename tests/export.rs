@@ -2,6 +2,7 @@ use std::fs;
 
 use anyhow::Result;
 use assert_cmd::Command;
+use assert_fs::prelude::*;
 
 const PUB_KEY: &str = "b595226c62427adbfc4a809cd7577488a6d402b2f930e1d603164ae3191a616e";
 const PRIV_KEY: &str = "88649a9e83f8f1984ad35ac8e8e86529aab518572c0341f46d1e0bc97f676f2b";
@@ -31,6 +32,40 @@ fn export() -> Result<()> {
         .assert()
         .success()
         .stdout(predicates::str::contains("export some=secret"));
+
+    Ok(())
+}
+
+#[test]
+fn export_to_file() -> Result<()> {
+    let key_file = assert_fs::NamedTempFile::new(PUB_KEY)?;
+    fs::write(key_file.path(), PRIV_KEY)?;
+
+    let file = assert_fs::NamedTempFile::new("secrets.ejson")?;
+    fs::write(
+        file.path(),
+        serde_json::json!({
+            "_public_key": PUB_KEY,
+            "environment": {
+                "some":"EJ[1:l6yw664nxaddSXGiWUZfuVeoUSpTFHzqAyCpfF8Awxc=:xOfucLDkACGlPCyJ6QViggEidVswUlsH:B/f3DJMkdZHF+Wu9F6XUFwuTmxyfBA==]"
+            }
+        })
+        .to_string(),
+    )?;
+
+    let out_file = assert_fs::NamedTempFile::new(".envrc")?;
+
+    Command::cargo_bin("rejson")?
+        .arg("env")
+        .arg(file.path())
+        .arg("--keydir")
+        .arg(key_file.parent().unwrap())
+        .arg("--out")
+        .arg(out_file.path())
+        .assert()
+        .success();
+
+    out_file.assert(predicates::str::contains("export some=secret"));
 
     Ok(())
 }

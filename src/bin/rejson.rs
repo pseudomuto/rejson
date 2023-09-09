@@ -71,6 +71,10 @@ enum Commands {
         /// Read the private key from stdin.
         #[arg(long)]
         key_from_stdin: bool,
+
+        /// The path to write the export statements to.
+        #[arg(short, long)]
+        out: Option<String>,
     },
 }
 
@@ -91,7 +95,8 @@ fn main() -> Result<()> {
             file,
             keydir,
             key_from_stdin,
-        } => export_env(file, keydir, key_from_stdin),
+            out,
+        } => export_env(file, keydir, key_from_stdin, out),
     }
 }
 
@@ -161,20 +166,37 @@ fn keygen(keydir: Option<String>, write: bool) -> Result<()> {
         .map_err(anyhow::Error::msg)
 }
 
-fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool) -> Result<()> {
+fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool, out: Option<String>) -> Result<()> {
     let mut secrets_file = SecretsFile::load(file)?;
 
     let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
     secrets_file.transform(rejson::decrypt(&secrets_file, private_key)?)?;
 
     match secrets_file.children(ENV_KEY) {
-        Some(map) => map.into_iter().for_each(|(k, v)| {
-            println!("export {}={}", k, shell_escape::escape(v.into()));
-        }),
-        None => eprintln!("No {} key found. Nothing to export.", ENV_KEY),
-    }
+        Some(map) => {
+            let map = &map;
 
-    Ok(())
+            out.map_or_else(
+                || {
+                    map.iter()
+                        .for_each(|(k, v)| println!("export {}={}", k, shell_escape::escape(v.to_string().into())));
+                    Ok(())
+                },
+                |out| {
+                    let mut file = fs::File::create(out)?;
+                    map.iter()
+                        .try_for_each(|(k, v)| {
+                            writeln!(file, "export {}={}", k, shell_escape::escape(v.to_string().into()))
+                        })
+                        .map_err(|e| anyhow::anyhow!(e.to_string()))
+                },
+            )
+        }
+        None => {
+            eprintln!("No {} key found. Nothing to export.", ENV_KEY);
+            Ok(())
+        }
+    }
 }
 
 /// Load the private key from the keydir or stdin.
