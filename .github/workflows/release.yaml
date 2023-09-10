@@ -13,7 +13,7 @@ jobs:
       # Publish crate to crates.io
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           override: true
       - uses: katyo/publish-crates@v2
         with:

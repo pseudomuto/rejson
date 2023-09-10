@@ -8,6 +8,7 @@ edition = "2021"
 homepage = "https://github.com/pseudomuto/rejson"
 license = "MIT"
 repository = "https://github.com/pseudomuto/rejson"
+rust-version = "1.70.0"
 
 [[bin]]
 name = "rejson"
