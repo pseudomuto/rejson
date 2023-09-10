@@ -1,5 +1,4 @@
 #![doc = include_str!("README.md")]
-#![feature(trait_alias)]
 
 mod crypto;
 mod json;
@@ -8,7 +7,7 @@ use std::{fs, path::Path};
 
 use anyhow::Result;
 pub use crypto::{Key, KeyPair};
-pub use json::{SecretsFile, Transform};
+pub use json::SecretsFile;
 
 const NEW_LINE: &str = "\n";
 const CARRIAGE_RETURN: &str = "\r";
@@ -16,7 +15,7 @@ const CARRIAGE_RETURN: &str = "\r";
 /// Returns a [Transform] function that compacts multiline strings into single lines with line
 /// break characters. This is useful when adding something like a service account in the EJSON file
 /// and having the encrypt function compact it before encryption.
-pub fn compact() -> Result<impl Transform> {
+pub fn compact() -> Result<impl Fn(String) -> Result<String>> {
     Ok(|s: String| {
         if s.contains(NEW_LINE) || s.contains(CARRIAGE_RETURN) {
             return Ok(s
@@ -32,7 +31,7 @@ pub fn compact() -> Result<impl Transform> {
 
 /// Returns a [Transform] function for use with [Parser::transform] that will encrypt all eligible
 /// values (that aren't already encrypted).
-pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Transform> {
+pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Fn(String) -> Result<String>> {
     let public_key = secrets_file.public_key().unwrap();
     let ephemeral_key = KeyPair::generate()?;
     let encryptor = ephemeral_key.encryptor(public_key)?;
@@ -50,7 +49,7 @@ pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Transform> {
 /// Returns a [Transform] that will decrypt incoming values from the supplied secrets file. This is
 /// done by creating a [KeyPair] consisting of the public key from the file and the supplied
 /// private key.
-pub fn decrypt(secrets_file: &SecretsFile, private_key: Key) -> Result<impl Transform> {
+pub fn decrypt(secrets_file: &SecretsFile, private_key: Key) -> Result<impl Fn(String) -> Result<String>> {
     let public_key = secrets_file.public_key().unwrap();
     let decryptor = KeyPair::new(public_key, private_key).decryptor();
 
