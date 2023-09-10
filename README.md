@@ -106,7 +106,7 @@ use std::fs;
 use rejson::{KeyPair, SecretsFile};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let file = "build/secrets.ejson";
+    let file = "examples/data/secrets.ejson";
     let mut secrets_file = SecretsFile::load(file).expect("failed to load file");
     secrets_file.transform(rejson::compact()?)?;
     secrets_file.transform(rejson::encrypt(&secrets_file)?)?;
@@ -119,21 +119,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+See the [_examples_](examples/) directory for more.
 
 ## Development
 
 ### Local Setup
 
-* Ensure you're using nightly (currently required only for Rustfmt and the `trait_alias` feature).
+* Make sure you have the nightly toolchain (used for rustfmt only)
 * Add pre-commit to avoid committing malformatted code 
   
 ```ignore
-ln -s -f ../../build/pre-commit .git/hooks/pre-commit
+ln -sf ../../build/pre-commit .git/hooks/pre-commit
 ```
 
 ### Cutting a New release
 
-Run `build/release`. This will:
+Run `build/release <new_version>`. This will:
 
 * Update version in Cargo.toml
 * Create a new commit with the message "Release v<version>"

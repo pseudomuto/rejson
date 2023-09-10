@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr};
+use std::{fmt, fs, path::Path, str::FromStr};
 
 use anyhow::{anyhow, Result};
 use nacl::public_box;
@@ -16,6 +16,11 @@ const NONCE_SIZE: usize = 24;
 pub struct Key(pub(crate) [u8; KEY_SIZE]);
 
 impl Key {
+    /// Reads in a [Key] from the supplied path.
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
+        fs::read_to_string(path)?.trim().parse()
+    }
+
     /// Return a [Key] consisting of all _v_ bytes.
     #[cfg(test)]
     pub fn all(v: u8) -> Self {
@@ -131,6 +136,16 @@ impl KeyPair {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn key_from_file() {
+        let key_path = Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap())
+            .join("examples")
+            .join("data")
+            .join("2549b26efec29cf60e473797f5dda5f41d99460cf1c32f34f1c0247d9bd7ff5b");
+
+        assert!(Key::from_file(key_path).is_ok());
+    }
 
     #[test]
     fn key_serde() {

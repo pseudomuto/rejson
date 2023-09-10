@@ -10,11 +10,11 @@ const IGNORE_PREFIX: &str = "_";
 
 #[derive(Debug)]
 pub struct SecretsFile {
-    value: Value,
+    pub(crate) value: Value,
 }
 
 impl SecretsFile {
-    /// Creates a new [Parser] by reading the specified file.
+    /// Creates a new [SecretsFile] by reading the specified file.
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         std::fs::read_to_string(path.as_ref())?.parse()
     }
