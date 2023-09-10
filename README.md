@@ -3,6 +3,7 @@
 [![CI](https://github.com/pseudomuto/rejson/actions/workflows/ci.yaml/badge.svg)](https://github.com/pseudomuto/rejson/actions/workflows/ci.yaml)
 [![Latest version](https://img.shields.io/crates/v/rejson.svg)](https://crates.io/crates/rejson)
 [![Docs](https://img.shields.io/badge/docs-rs-blue)](https://docs.rs/rejson/latest)
+[![codecov](https://codecov.io/gh/pseudomuto/rejson/graph/badge.svg?token=pEmI3xM9Ae)](https://codecov.io/gh/pseudomuto/rejson)
 
  `rejson` is a utility for managing a collection of secrets in source control. The secrets are encrypted using
  [public key], [elliptic curve] cryptography ([NaCl] [Box]: [Curve25519] + [Salsa20] + [Poly1305-AES]). Secrets are

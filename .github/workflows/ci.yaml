@@ -18,6 +18,9 @@ jobs:
           rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
           cargo install cargo-llvm-cov
 
+      # cache the things...
+      - uses: Swatinem/rust-cache@v2
+
       - name: Toolchain info
         run: |
           cargo --version --verbose
@@ -32,9 +35,11 @@ jobs:
       - name: Test
         run: |
           cargo check
-          cargo llvm-cov
           cargo test --doc
+          cargo llvm-cov --lcov --output-path coverage.lcov
 
-      - name: Build
-        run: |
-          cargo build --release
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
