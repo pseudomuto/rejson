@@ -211,7 +211,7 @@ fn load_private_key(secrets_file: &SecretsFile, keydir: Option<String>, key_from
                 std::io::stdin().read_line(&mut buffer)?;
                 buffer.trim().parse()?
             } else {
-                return Err(anyhow::anyhow!("Either --keydir or --key-from-std must be supplied"));
+                rejson::load_private_key(secrets_file, "/opt/ejson/keys")?
             }
         }
     };
