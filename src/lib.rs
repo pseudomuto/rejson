@@ -2,6 +2,7 @@
 
 mod crypto;
 mod json;
+mod kube;
 mod map;
 
 use std::path::Path;
@@ -9,6 +10,7 @@ use std::path::Path;
 use anyhow::Result;
 pub use crypto::{Key, KeyPair};
 pub use json::SecretsFile;
+pub use kube::SecretsManifest;
 pub use map::SecretsMap;
 
 const NEW_LINE: &str = "\n";
