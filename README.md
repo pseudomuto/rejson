@@ -42,6 +42,7 @@ filing an issue.
 
 * A `--strip-key` flag on `decrypt` which will remove `_public_key` from the result.
 * `env` command which will export all keys under the top-level `environment` key.
+* `kube-secrets` command which will output K8s secret manifests for values under the `kubernetes` key.
 
 ## Usage
 

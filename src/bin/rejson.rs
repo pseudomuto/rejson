@@ -2,10 +2,13 @@ use std::{fs, io::Write};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use rejson::{self, Key, KeyPair, SecretsFile};
+use rejson::{self, Key, KeyPair, SecretsFile, SecretsManifest, SecretsMap};
 
-/// Key for export command.
+/// Key for env command.
 const ENV_KEY: &str = "environment";
+
+/// Key for kube-secrets command.
+const KUBE_SECRETS_KEY: &str = "kubernetes";
 
 #[derive(Parser)]
 #[command(author, about, version)]
@@ -76,6 +79,53 @@ enum Commands {
         #[arg(short, long)]
         out: Option<String>,
     },
+
+    /// Generate a K8s manifest for secrets defined under the "kubernetes" key.
+    ///
+    /// The expected format for this key is as follows:
+    ///
+    /// ```json
+    /// {
+    ///   "_public_key": "...",
+    ///   ...
+    ///   "kubernetes": {
+    ///     "secret_name": {
+    ///       "KEY": "EJ[1:...]",
+    ///       "OTHER_KEY": "EJ[1:...]"
+    ///     },
+    ///     ...
+    ///     ...
+    ///   }
+    /// }
+    /// ```
+    ///
+    /// The output would be a manifest will something like the following (one for each secret
+    /// separated by `---`)
+    ///
+    /// ```yaml
+    /// api: v1
+    /// kind: Secret
+    /// metadata:
+    ///   name: secret_name
+    /// data:
+    ///   KEY: <base64 decrypted value>
+    ///   OTHER_KEY: <base64 decrypted value>
+    /// ```
+    KubeSecrets {
+        /// The file to decrypt.
+        file: String,
+
+        #[arg(env = "EJSON_KEYDIR", long)]
+        keydir: Option<String>,
+
+        /// Read the private key from stdin.
+        #[arg(long)]
+        key_from_stdin: bool,
+
+        /// The path to write the manifest to.
+        #[arg(short, long)]
+        out: Option<String>,
+    },
 }
 
 fn main() -> Result<()> {
@@ -97,6 +147,12 @@ fn main() -> Result<()> {
             key_from_stdin,
             out,
         } => export_env(file, keydir, key_from_stdin, out),
+        Commands::KubeSecrets {
+            file,
+            keydir,
+            key_from_stdin,
+            out,
+        } => kube_secrets_manifest(file, keydir, key_from_stdin, out),
     }
 }
 
@@ -197,6 +253,36 @@ fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool, out: O
             Ok(())
         }
     }
+}
+
+fn kube_secrets_manifest(
+    file: String,
+    keydir: Option<String>,
+    key_from_stdin: bool,
+    out: Option<String>,
+) -> Result<()> {
+    let secrets_file = SecretsFile::load(&file)?;
+    let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
+    let secrets = SecretsMap::load_and_decrypt(&file, private_key)?;
+
+    let manifest = SecretsManifest::new(
+        secrets
+            .iter()
+            .filter(|(k, _)| k.starts_with(KUBE_SECRETS_KEY))
+            .map(|(k, v)| (k.strip_prefix(&format!("{}.", KUBE_SECRETS_KEY)).unwrap(), v.as_str()))
+            .collect(),
+    );
+
+    out.map_or_else(
+        || {
+            println!("{}", manifest);
+            Ok(())
+        },
+        |out| {
+            let mut file = fs::File::create(out)?;
+            writeln!(file, "{}", manifest).map_err(anyhow::Error::msg)
+        },
+    )
 }
 
 /// Load the private key from the keydir or stdin.
