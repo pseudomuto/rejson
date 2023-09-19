@@ -8,7 +8,7 @@ const KEY_DELIMITER: &str = ".";
 /// A wrapper around a map of dot-delimited keys and values that can be converted into a Kubernetes
 /// manifest of secrets.
 pub struct SecretsManifest<'a> {
-    inner: HashMap<&'a str, HashMap<&'a str, &'a str>>,
+    inner: BTreeMap<&'a str, BTreeMap<&'a str, &'a str>>,
 }
 
 impl<'a> SecretsManifest<'a> {
@@ -21,14 +21,14 @@ impl<'a> SecretsManifest<'a> {
             .map(|(k, v)| (k, v))
             .collect::<BTreeMap<&str, &str>>()
             .iter()
-            .fold(HashMap::new(), |mut map, (k, v)| {
+            .fold(BTreeMap::new(), |mut map, (k, v)| {
                 // secret.key => name = secret, key = key
                 // secret.[file.ext] => name = secret, key = file.ext
                 let name = &k[..k.find(KEY_DELIMITER).unwrap()];
                 let key = &k[k.find(KEY_DELIMITER).unwrap() + 1..];
 
                 // Update values (creating if necessary).
-                let values: &mut HashMap<&str, &str> = map.entry(name).or_default();
+                let values: &mut BTreeMap<&str, &str> = map.entry(name).or_default();
                 values.insert(key.trim_matches(&['[', ']'] as &[_]), v);
 
                 map
@@ -68,15 +68,15 @@ mod tests {
             ("database.DATABASE_URL", "pgsql://db_url"),
         ]);
 
-        let exp = HashMap::from([
+        let exp = BTreeMap::from([
+            ("credentials", BTreeMap::from([("path", "/some/path/file.ext")])),
             (
                 "database",
-                HashMap::from([
+                BTreeMap::from([
                     ("DATABASE_URL", "pgsql://db_url"),
                     ("READ_ONLY_DATABASE_URL", "pgsql://ro_db_url"),
                 ]),
             ),
-            ("credentials", HashMap::from([("path", "/some/path/file.ext")])),
         ]);
 
         let manifest = SecretsManifest::new(secrets);

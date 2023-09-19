@@ -8,7 +8,7 @@ const PUB_KEY: &str = "b595226c62427adbfc4a809cd7577488a6d402b2f930e1d603164ae31
 const PRIV_KEY: &str = "88649a9e83f8f1984ad35ac8e8e86529aab518572c0341f46d1e0bc97f676f2b";
 
 #[test]
-fn export() -> Result<()> {
+fn env() -> Result<()> {
     let key_file = assert_fs::NamedTempFile::new(PUB_KEY)?;
     fs::write(key_file.path(), PRIV_KEY)?;
 
@@ -37,7 +37,7 @@ fn export() -> Result<()> {
 }
 
 #[test]
-fn export_to_file() -> Result<()> {
+fn env_to_file() -> Result<()> {
     let key_file = assert_fs::NamedTempFile::new(PUB_KEY)?;
     fs::write(key_file.path(), PRIV_KEY)?;
 
@@ -71,7 +71,7 @@ fn export_to_file() -> Result<()> {
 }
 
 #[test]
-fn export_shell_escape() -> Result<()> {
+fn env_shell_escape() -> Result<()> {
     let key_file = assert_fs::NamedTempFile::new(PUB_KEY)?;
     fs::write(key_file.path(), PRIV_KEY)?;
 

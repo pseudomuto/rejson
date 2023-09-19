@@ -304,8 +304,8 @@ fn load_private_key(secrets_file: &SecretsFile, keydir: Option<String>, key_from
 
     Ok(private_key)
 }
-#[test]
 
+#[test]
 fn verify_cli() {
     use clap::CommandFactory;
     Cli::command().debug_assert()
