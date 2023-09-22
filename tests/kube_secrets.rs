@@ -29,7 +29,7 @@ fn kube_secrets() -> Result<()> {
     )?;
 
     let exp = r#"---
-api: v1
+apiVersion: v1
 kind: Secret
 metadata:
   name: basic-auth
@@ -37,7 +37,7 @@ data:
   password: cEE1NXdvcmQx
   username: dGVzdA==
 ---
-api: v1
+apiVersion: v1
 kind: Secret
 metadata:
   name: database
@@ -76,7 +76,7 @@ fn kube_secrets_key_from_stdin() -> Result<()> {
     )?;
 
     let exp = r#"---
-api: v1
+apiVersion: v1
 kind: Secret
 metadata:
   name: database

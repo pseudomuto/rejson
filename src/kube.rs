@@ -44,7 +44,7 @@ impl fmt::Display for SecretsManifest<'_> {
 
         self.inner.iter().try_for_each(|(k, data)| {
             writeln!(f, "---")?;
-            writeln!(f, "api: v1")?;
+            writeln!(f, "apiVersion: v1")?;
             writeln!(f, "kind: Secret")?;
             writeln!(f, "metadata:")?;
             writeln!(f, "  name: {}", k)?;
