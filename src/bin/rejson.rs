@@ -4,6 +4,9 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use rejson::{self, Key, KeyPair, SecretsFile, SecretsManifest, SecretsMap};
 
+/// The default place to find private keys.
+const DEFAULT_KEYDIR: &str = "/opt/ejson/keys";
+
 /// Key for env command.
 const ENV_KEY: &str = "environment";
 
@@ -111,6 +114,9 @@ enum Commands {
     ///   KEY: <base64 decrypted value>
     ///   OTHER_KEY: <base64 decrypted value>
     /// ```
+    ///
+    /// You can optionally add `"_namespace": "my-ns"` to any secret to have it be defined in the
+    /// my-ns namespace.
     KubeSecrets {
         /// The file to decrypt.
         file: String,
@@ -287,19 +293,17 @@ fn kube_secrets_manifest(
 
 /// Load the private key from the keydir or stdin.
 fn load_private_key(secrets_file: &SecretsFile, keydir: Option<String>, key_from_stdin: bool) -> Result<Key> {
+    if key_from_stdin {
+        let mut buffer = String::new();
+        std::io::stdin().read_line(&mut buffer)?;
+        return buffer.trim().parse();
+    }
+
     let private_key = match keydir {
         // Load the key from the keydir.
         Some(keydir) => rejson::load_private_key(secrets_file, &keydir)?,
-        // Read the key from stdin.
-        None => {
-            if key_from_stdin {
-                let mut buffer = String::new();
-                std::io::stdin().read_line(&mut buffer)?;
-                buffer.trim().parse()?
-            } else {
-                rejson::load_private_key(secrets_file, "/opt/ejson/keys")?
-            }
-        }
+        // Read the key default keydir.
+        None => rejson::load_private_key(secrets_file, DEFAULT_KEYDIR)?,
     };
 
     Ok(private_key)
