@@ -2,43 +2,43 @@
 set -euo pipefail
 
 main() {
-	ensure_cross
+  ensure_cross
 
-	case "${1}" in
-	darwin_arm64)
-		build_arch "aarch64-apple-darwin" "rejson_${1}"
-		;;
-	linux_amd64_v1)
-		build_arch "x86_64-unknown-linux-gnu" "rejson_${1}"
-		;;
-	linux_amd64_v2)
-		build_arch "x86_64-unknown-linux-musl" "rejson_${1}"
-		;;
-	linux_arm64)
-		build_arch "aarch64-unknown-linux-gnu" "rejson_${1}"
-		;;
-	*)
-		echo "${1} not supported"
-		;;
-	esac
+  case "${1}" in
+  darwin_arm64_v8.0)
+    build_arch "aarch64-apple-darwin" "rejson_${1}"
+    ;;
+  linux_amd64_v1)
+    build_arch "x86_64-unknown-linux-gnu" "rejson_${1}"
+    ;;
+  linux_amd64_v2)
+    build_arch "x86_64-unknown-linux-musl" "rejson_${1}"
+    ;;
+  linux_arm64_v8.0)
+    build_arch "aarch64-unknown-linux-gnu" "rejson_${1}"
+    ;;
+  *)
+    echo "${1} not supported"
+    ;;
+  esac
 }
 
 build_arch() {
-	local target="${1}"
-	local dist="${2}"
+  local target="${1}"
+  local dist="${2}"
 
-	cross build --release --target "${target}"
+  cross build --release --target "${target}"
 
-	mkdir -p "dist/${dist}"
-	cp "target/${target}/release/rejson" "dist/${dist}/"
+  mkdir -p "dist/${dist}"
+  cp "target/${target}/release/rejson" "dist/${dist}/"
 }
 
 ensure_cross() {
-	if ! which cross >/dev/null; then
-		cargo install cross --git https://github.com/cross-rs/cross
-	fi
+  if ! which cross >/dev/null; then
+    cargo install cross --git https://github.com/cross-rs/cross
+  fi
 
-	echo "Using $(which cross)"
+  echo "Using $(which cross)"
 }
 
 main "$@"
