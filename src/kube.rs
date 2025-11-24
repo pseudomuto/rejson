@@ -5,6 +5,7 @@ use base64::Engine;
 
 const KEY_DELIMITER: &str = ".";
 const NAMESPACE_KEY: &str = "_namespace";
+const TYPE_KEY: &str = "_type";
 
 /// A wrapper around a map of dot-delimited keys and values that can be converted into a Kubernetes
 /// manifest of secrets.
@@ -52,10 +53,15 @@ impl fmt::Display for SecretsManifest<'_> {
             if let Some(ns) = data.get(NAMESPACE_KEY) {
                 writeln!(f, "  namespace: {}", ns)?;
             }
+
+            if let Some(kind) = data.get(TYPE_KEY) {
+                writeln!(f, "type: {}", kind)?;
+            }
+
             writeln!(f, "data:")?;
 
             data.iter()
-                .filter(|&(k, _)| k != &NAMESPACE_KEY)
+                .filter(|&(k, _)| k != &NAMESPACE_KEY && k != &TYPE_KEY)
                 .try_for_each(|(k, v)| writeln!(f, "  {}: {}", k, b64.encode(v)))
         })
     }
@@ -78,6 +84,38 @@ mod tests {
             (
                 "credentials",
                 BTreeMap::from([("_namespace", "testing"), ("path", "/some/path/file.ext")]),
+            ),
+            (
+                "database",
+                BTreeMap::from([
+                    ("DATABASE_URL", "pgsql://db_url"),
+                    ("READ_ONLY_DATABASE_URL", "pgsql://ro_db_url"),
+                ]),
+            ),
+        ]);
+
+        let manifest = SecretsManifest::new(secrets);
+        assert_eq!(exp, manifest.inner);
+    }
+
+    #[test]
+    fn secret_with_type() {
+        let secrets = HashMap::from([
+            ("database.READ_ONLY_DATABASE_URL", "pgsql://ro_db_url"),
+            ("credentials.path", "/some/path/file.ext"),
+            ("credentials._namespace", "testing"),
+            ("credentials._type", "kubernetes.io/tls"),
+            ("database.DATABASE_URL", "pgsql://db_url"),
+        ]);
+
+        let exp = BTreeMap::from([
+            (
+                "credentials",
+                BTreeMap::from([
+                    ("_namespace", "testing"),
+                    ("_type", "kubernetes.io/tls"),
+                    ("path", "/some/path/file.ext"),
+                ]),
             ),
             (
                 "database",

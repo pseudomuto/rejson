@@ -24,6 +24,13 @@ fn kube_secrets() -> Result<()> {
                 "database": {
                     "_namespace": "testing",
                     "DATABASE_URL": "EJ[1:t33Bwgtq7Zghz1P0D+8ZMiSypiQye4q9DWLuxaOrLEU=:0w+6gl3gXIOQohjqZnmih8ZLWPVffurJ:7U6ZEcttjrkS5sA73T/y/hESIaoxJUA320XqBoFWvw==]"
+                },
+                "tls-cert": {
+                    "_namespace": "cert-manager",
+                    "_type": "kubernetes.io/tls",
+                    "ca.crt": "EJ[1:YeaslA2I2b2MaIJgnDSKCZyE5JoZfbU60jdXYVefzgo=:lvyuyUzBIJUcZdxvqP5cz3oOX+UE2KHr:a1HJv8fciDo2uI3UeUdfaaZhhjB5KbCtBuf3knGTMG9a2a4=]",
+                    "tls.crt": "EJ[1:YeaslA2I2b2MaIJgnDSKCZyE5JoZfbU60jdXYVefzgo=:bkg3iUfkYJG5Br7quMujuA+J2cUMOZmM:nHd0SRV1eeL0rxC0nzuoVi4jTvOBSAMdskZMz1+a8w8=]",
+                    "tls.key": "EJ[1:YeaslA2I2b2MaIJgnDSKCZyE5JoZfbU60jdXYVefzgo=:Eexh3Hl446GCy5Kloz55YVfr7WXOWg2g:27YfcdLAVmud4c8C4MFpHjvo9WE3geVt]"
                 }
             }
         })
@@ -45,7 +52,18 @@ metadata:
   name: database
   namespace: testing
 data:
-  DATABASE_URL: cGdzcWw6Ly9zb21lLWRi"#;
+  DATABASE_URL: cGdzcWw6Ly9zb21lLWRi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls-cert
+  namespace: cert-manager
+type: kubernetes.io/tls
+data:
+  ca.crt: U29tZSBDQSBDZXJ0aWZpY2F0ZQ==
+  tls.crt: U29tZSBDZXJ0aWZpY2F0ZQ==
+  tls.key: U29tZSBLZXk="#;
 
     cargo_bin_cmd!()
         .arg("kube-secrets")
