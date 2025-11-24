@@ -10,33 +10,32 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Update local toolchain
-        run: |
-          rustup install nightly
-          rustup component add clippy llvm-tools-preview
-          rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
-          cargo install cargo-llvm-cov
+      - uses: actions/checkout@v6
 
-      # cache the things...
-      - uses: Swatinem/rust-cache@v2
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v21
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Toolchain info
         run: |
-          cargo --version --verbose
-          rustc --version
-          cargo clippy --version
+          nix develop --command cargo --version --verbose
+          nix develop --command rustc --version
+          nix develop --command clippy-driver --version
+          nix develop --command rustfmt --version
 
-      - name: Lint
-        run: |
-          cargo +nightly fmt -- --check
-          cargo clippy -- -D warnings
+      - name: Install coverage tool
+        run: nix develop --command cargo install cargo-llvm-cov
 
-      - name: Test
-        run: |
-          cargo check
-          cargo test --doc
-          cargo llvm-cov --lcov --output-path coverage.lcov
+      - name: Run CI pipeline
+        run: nix develop --command task ci
+
+      - name: Generate coverage report
+        run: nix develop --command cargo llvm-cov --lcov --output-path coverage.lcov
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3

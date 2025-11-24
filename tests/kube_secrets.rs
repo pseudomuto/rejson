@@ -1,7 +1,7 @@
 use std::fs;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo_bin_cmd;
 
 const PUB_KEY: &str = "b595226c62427adbfc4a809cd7577488a6d402b2f930e1d603164ae3191a616e";
 const PRIV_KEY: &str = "88649a9e83f8f1984ad35ac8e8e86529aab518572c0341f46d1e0bc97f676f2b";
@@ -47,7 +47,7 @@ metadata:
 data:
   DATABASE_URL: cGdzcWw6Ly9zb21lLWRi"#;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("kube-secrets")
         .arg(file.path())
         .arg("--keydir")
@@ -86,7 +86,7 @@ metadata:
 data:
   DATABASE_URL: cGdzcWw6Ly9zb21lLWRi"#;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("kube-secrets")
         .arg(file.path())
         .arg("--key-from-stdin")

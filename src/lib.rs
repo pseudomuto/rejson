@@ -35,7 +35,7 @@ pub fn compact() -> Result<impl Fn(String) -> Result<String>> {
 
 /// Returns a transform function for use with [SecretsFile::transform] that will encrypt all eligible
 /// values (that aren't already encrypted).
-pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Fn(String) -> Result<String>> {
+pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Fn(String) -> Result<String> + use<>> {
     let public_key = secrets_file.public_key().unwrap();
     let ephemeral_key = KeyPair::generate()?;
     let encryptor = ephemeral_key.encryptor(public_key)?;
@@ -53,7 +53,7 @@ pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Fn(String) -> Result<S
 /// Returns a transform that will decrypt incoming values from the supplied secrets file. This is
 /// done by creating a [KeyPair] consisting of the public key from the file and the supplied
 /// private key.
-pub fn decrypt(secrets_file: &SecretsFile, private_key: Key) -> Result<impl Fn(String) -> Result<String>> {
+pub fn decrypt(secrets_file: &SecretsFile, private_key: Key) -> Result<impl Fn(String) -> Result<String> + use<>> {
     let public_key = secrets_file.public_key().unwrap();
     let decryptor = KeyPair::new(public_key, private_key).decryptor();
 

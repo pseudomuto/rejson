@@ -3,7 +3,7 @@ use std::{collections::HashMap, ops::Deref, path::Path};
 use anyhow::Result;
 use serde_json::Value;
 
-use crate::{decrypt, Key, SecretsFile};
+use crate::{Key, SecretsFile, decrypt};
 
 const SEPARATOR: &str = ".";
 

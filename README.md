@@ -5,10 +5,10 @@
 [![Docs](https://img.shields.io/badge/docs-rs-blue)](https://docs.rs/rejson/latest)
 [![codecov](https://codecov.io/gh/pseudomuto/rejson/graph/badge.svg?token=pEmI3xM9Ae)](https://codecov.io/gh/pseudomuto/rejson)
 
- `rejson` is a utility for managing a collection of secrets in source control. The secrets are encrypted using
- [public key], [elliptic curve] cryptography ([NaCl] [Box]: [Curve25519] + [Salsa20] + [Poly1305-AES]). Secrets are
- collected in a JSON file, in which all the string values are encrypted. Public keys are embedded in the file, and
- the decrypter looks up the corresponding private key from its local filesystem.
+`rejson` is a utility for managing a collection of secrets in source control. The secrets are encrypted using
+[public key], [elliptic curve] cryptography ([NaCl] [Box]: [Curve25519] + [Salsa20] + [Poly1305-AES]). Secrets are
+collected in a JSON file, in which all the string values are encrypted. Public keys are embedded in the file, and
+the decrypter looks up the corresponding private key from its local filesystem.
 
 > This is a rust port of [EJSON] with a few extra bells and whistles. Full credit should go to the team that made
 > EJSON. No innovation here other than needing Rust bindings and wanting a few extra features I'm not sure belonged
@@ -41,9 +41,9 @@ filing an issue.
 
 ### Additions to EJSON
 
-* A `--strip-key` flag on `decrypt` which will remove `_public_key` from the result.
-* `env` command which will export all keys under the top-level `environment` key.
-* `kube-secrets` command which will output K8s secret manifests for values under the `kubernetes` key.
+- A `--strip-key` flag on `decrypt` which will remove `_public_key` from the result.
+- `env` command which will export all keys under the top-level `environment` key.
+- `kube-secrets` command which will output K8s secret manifests for values under the `kubernetes` key.
 
 ## Usage
 
@@ -129,9 +129,9 @@ See the [_examples_](examples/) directory for more.
 
 ### Local Setup
 
-* Make sure you have the nightly toolchain (used for rustfmt only)
-* Add pre-commit to avoid committing malformatted code
-  
+- Make sure you have the nightly toolchain (used for rustfmt only)
+- Add pre-commit to avoid committing malformatted code
+
 ```ignore
 ln -sf ../../build/pre-commit .git/hooks/pre-commit
 ```
@@ -140,17 +140,16 @@ ln -sf ../../build/pre-commit .git/hooks/pre-commit
 
 Run `build/release <new_version>`. This will:
 
-* Update version in Cargo.toml
-* Create a new commit with the message "Release v<version>"
-* `git tag -sm "Release v<version" v<version>`
-* `git push --tags`
+- Update version in Cargo.toml
+- Create a new commit with the message "Release v<version>"
+- `git tag -sm "Release v<version" v<version>`
+- `git push --tags`
 
 Once the release pipeline has finished and published the crate, run the following to create the GitHub release with
 attached binaries, etc.
 
 ```ignore
-goreleaser release --clean
+task release
 ```
 
-> Yes, I've hacked goreleaser into thinking this is a go project so I can leverage it for running cross, publishing
-> docker images, and setting up GitHub releases.
+Add archives to the GitHub release and publish it.

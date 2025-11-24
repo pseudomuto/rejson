@@ -1,7 +1,7 @@
 use std::fs;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo_bin_cmd;
 use assert_fs::prelude::*;
 
 const PUB_KEY: &str = "b595226c62427adbfc4a809cd7577488a6d402b2f930e1d603164ae3191a616e";
@@ -24,7 +24,7 @@ fn env() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("env")
         .arg(file.path())
         .arg("--keydir")
@@ -55,7 +55,7 @@ fn env_to_file() -> Result<()> {
 
     let out_file = assert_fs::NamedTempFile::new(".envrc")?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("env")
         .arg(file.path())
         .arg("--keydir")
@@ -87,7 +87,7 @@ fn env_shell_escape() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("env")
         .arg(file.path())
         .arg("--keydir")
