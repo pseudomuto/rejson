@@ -1,7 +1,7 @@
-use std::{fs, process::Command};
+use std::fs;
 
 use anyhow::Result;
-use assert_cmd::prelude::*;
+use assert_cmd::cargo_bin_cmd;
 use assert_fs::prelude::*;
 
 const PUB_KEY: &str = "344b86d41cbb5660d98f59b4a7b35f3128e0d0b9c4b06f05ca7ae28b9c7dd72e";
@@ -18,7 +18,7 @@ fn encrypt_file() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("encrypt")
         .arg(file.path())
         .assert()
@@ -44,7 +44,7 @@ fn encrypt_file_existing_secrets() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("encrypt")
         .arg(file.path())
         .assert()
@@ -80,7 +80,7 @@ fn encrypt_multiple_files() -> Result<()> {
         )
     })?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("encrypt")
         .arg(file1.path())
         .arg(file2.path())

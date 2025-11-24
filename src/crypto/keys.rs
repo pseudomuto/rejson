@@ -1,6 +1,6 @@
 use std::{fmt, fs, path::Path, str::FromStr};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use nacl::public_box;
 use rand::RngCore;
 
@@ -30,7 +30,7 @@ impl Key {
     /// Generate a random [Key].
     pub fn random() -> Self {
         let mut bytes = Self::default().0;
-        rand::thread_rng().fill_bytes(&mut bytes);
+        rand::rng().fill_bytes(&mut bytes);
         Self(bytes)
     }
 }
@@ -79,7 +79,7 @@ impl Nonce {
     /// Generate a random [Nonce].
     pub fn random() -> Self {
         let mut bytes = Self::default().0;
-        rand::thread_rng().fill_bytes(&mut bytes);
+        rand::rng().fill_bytes(&mut bytes);
         Self(bytes)
     }
 }

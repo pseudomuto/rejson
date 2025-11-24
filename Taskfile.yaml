@@ -1,0 +1,113 @@
+version: "3"
+
+vars:
+  CARGO_TERM_COLOR: always
+
+tasks:
+  default:
+    cmd: task --list
+
+  fmt:
+    desc: Format code using nightly rustfmt
+    cmds:
+      - cargo fmt --all
+
+  fmt-check:
+    desc: Check if code is formatted without making changes
+    cmds:
+      - cargo fmt --all -- --check
+
+  lint:
+    desc: Run clippy for linting
+    cmds:
+      - cargo clippy --all-targets --all-features -- -D warnings
+
+  lint-fix:
+    desc: Run clippy and fix issues automatically where possible
+    cmds:
+      - cargo clippy --all-targets --all-features --fix --allow-dirty --allow-staged
+
+  test:
+    desc: Run all tests
+    cmds:
+      - cargo test --all-features
+
+  test-verbose:
+    desc: Run tests with verbose output
+    cmds:
+      - cargo test --all-features -- --nocapture
+
+  build:
+    desc: Build the project in debug mode
+    cmds:
+      - cargo build
+
+  build:release:
+    desc: Build the project in release mode
+    cmds:
+      - cargo build --release
+
+  check:
+    desc: Check that the project compiles without building
+    cmds:
+      - cargo check --all-targets --all-features
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - cargo clean
+
+  ci:
+    desc: Run the full CI pipeline locally (format check, lint, test, build)
+    deps:
+      - fmt-check
+      - lint
+      - test
+      - build
+
+  dev:
+    desc: Quick development check (format, lint, test)
+    deps:
+      - fmt
+      - lint
+      - test
+
+  install:
+    desc: Install the binary locally
+    cmds:
+      - cargo install --path .
+
+  doc:
+    desc: Generate and open documentation
+    cmds:
+      - cargo doc --open --all-features
+
+  release:
+    desc: Build binaries and publish docker image(s)
+    deps: [release:docker]
+    prompt: Build and release? Be sure the crate is already available.
+    cmd: |
+      rm -rf dist && docker run \
+        -v $(pwd):/app \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk:/sdkroot:ro \
+        -e SDKROOT=/sdkroot \
+        rejson:goreleaser \
+        release --clean
+
+  release:snapshot:
+    desc: Build a snapshot release for publishing
+    deps: [release:docker]
+    cmd: |
+      rm -rf dist && docker run \
+        -v $(pwd):/app \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk:/sdkroot:ro \
+        -e SDKROOT=/sdkroot \
+        rejson:goreleaser \
+        release --snapshot --clean --skip=publish
+
+  release:docker:
+    desc: Build a snapshot release (no publish)
+    cmds:
+      - docker buildx build -t rejson:goreleaser -f Dockerfile.release .

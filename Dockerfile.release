@@ -1,0 +1,15 @@
+FROM goreleaser/goreleaser:v2.12.7
+
+# Install build dependencies
+RUN apk add --no-cache zig=0.14.1-r0
+
+# Install Rust
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal \
+  && rustc --version \
+  && cargo install cargo-zigbuild
+
+WORKDIR /app
+VOLUME [ "/app" ]
+
+ENTRYPOINT ["goreleaser"]

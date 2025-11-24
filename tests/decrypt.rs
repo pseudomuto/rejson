@@ -1,7 +1,7 @@
 use std::fs;
 
 use anyhow::Result;
-use assert_cmd::Command;
+use assert_cmd::cargo_bin_cmd;
 use assert_fs::prelude::*;
 use predicates::prelude::*;
 
@@ -23,7 +23,7 @@ fn decrypt() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("decrypt")
         .arg(file.path())
         .arg("--keydir")
@@ -50,7 +50,7 @@ fn decrypt_ejson_keydir() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .env("EJSON_KEYDIR", key_file.parent().unwrap())
         .arg("decrypt")
         .arg(file.path())
@@ -73,7 +73,7 @@ fn decrypt_key_from_stdin() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("decrypt")
         .arg(file.path())
         .arg("--key-from-stdin")
@@ -99,7 +99,7 @@ fn decrypt_to_file() -> Result<()> {
         .to_string(),
     )?;
 
-    Command::cargo_bin("rejson")?
+    cargo_bin_cmd!()
         .arg("decrypt")
         .arg(file.path())
         .arg("--key-from-stdin")

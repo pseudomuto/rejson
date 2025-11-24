@@ -1,7 +1,7 @@
 use std::{fmt, str::FromStr};
 
 use anyhow::{Context, Error};
-use base64::{engine::general_purpose, Engine as _};
+use base64::{Engine as _, engine::general_purpose};
 use lazy_static::lazy_static;
 use regex::Regex;
 

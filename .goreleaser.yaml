@@ -1,47 +1,62 @@
+version: 2
 project_name: rejson
 
 builds:
-  - main: ./build/sentinel.go
+  - builder: rust
+    binary: rejson
     targets:
-      - darwin_arm64
-      - linux_amd64
-      - linux_amd64_v2
-      - linux_arm64
-    hooks:
-      post:
-        - cmd: sh build/cross {{.Target}}
-          output: true
+      - aarch64-apple-darwin
+      - aarch64-unknown-linux-gnu
+      - x86_64-apple-darwin
+      - x86_64-unknown-linux-gnu
+      - x86_64-unknown-linux-musl
+
+archives:
+  - files: ["nope*"] # Don't add LICENSE/README/etc.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+      {{- if contains .Target "musl" }}-musl{{ end }}
 
 release:
   draft: true
   header: |
     ## Release {{.ProjectName}} v{{.Version}}
   footer: |
-    > linux_amd64_v2 package contains a binary built against musl rather than libgcc. This is the package you should use if running on alpine.
+    > linux_amd64-musl package contains a binary built against musl rather than libgcc. This is the package you should use if running on alpine.
 
-dockers:
-  - image_templates:
-      - pseudomuto/{{.ProjectName}}:latest
-      - pseudomuto/{{.ProjectName}}:{{.Version}}
-      - pseudomuto/{{.ProjectName}}:{{.Major}}
-      - pseudomuto/{{.ProjectName}}:{{.Major}}.{{.Minor}}
-    build_flag_templates:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/amd64"
+dockers_v2:
+  - images:
+      - pseudomuto/{{.ProjectName}}
+
+    platforms:
+      - linux/amd64
+
+    tags:
+      - "{{.Version}}"
+      - "{{.Major}}"
+      - "{{.Major}}.{{.Minor}}"
+      - latest
+
+    labels:
+      "org.opencontainers.image.title": "{{ .ProjectName }}"
+      "org.opencontainers.image.description": "A utility for managing a collection of secrets in source control"
+      "org.opencontainers.image.url": "https://github.com/pseudomuto/{{ .ProjectName }}"
+      "org.opencontainers.image.source": "https://github.com/pseudomuto/{{ .ProjectName }}"
+      "org.opencontainers.image.version": "{{ .Version }}"
+      "org.opencontainers.image.created": "{{ .Date }}"
+      "org.opencontainers.image.revision": "{{ .FullCommit }}"
+
     extra_files:
-      - src
-      - Cargo.toml
       - README.md
 
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 
 snapshot:
-  name_template: "{{ incpatch .Version }}"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   use: github
