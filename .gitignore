@@ -1,4 +1,5 @@
 /.direnv
+/.envrc
 /dist
 /target
 /Cargo.lock
