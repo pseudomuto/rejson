@@ -63,7 +63,11 @@ pub fn decrypt(secrets_file: &SecretsFile, private_key: Key) -> Result<impl Fn(S
             return Ok(s);
         }
 
-        decryptor.decrypt(s)
+        // Replace escaped line breaks with real line breaks.
+        Ok(decryptor
+            .decrypt(s)?
+            .replace(r"\n", NEW_LINE)
+            .replace(r"\r", CARRIAGE_RETURN))
     })
 }
 
@@ -92,5 +96,20 @@ mod tests {
             assert_eq!(want, tf(given.to_string())?);
             Ok(())
         })
+    }
+
+    #[test]
+    fn multiline_round_trip() -> Result<()> {
+        // A compacted multiline value must decrypt back to real line breaks, not literal `\n`.
+        let durable = KeyPair::generate()?;
+        let file: SecretsFile = format!(r#"{{"_public_key":"{}"}}"#, durable.public_key()).parse()?;
+
+        let pem = "-----BEGIN PRIVATE KEY-----\nMIIB\n-----END PRIVATE KEY-----\n";
+        let compacted = compact()?(pem.to_string())?;
+        let ciphertext = encrypt(&file)?(compacted)?;
+        let decrypted = decrypt(&file, durable.private_key().parse()?)?(ciphertext)?;
+
+        assert_eq!(pem.trim(), decrypted);
+        Ok(())
     }
 }
