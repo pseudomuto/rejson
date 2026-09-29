@@ -36,6 +36,43 @@ fn decrypt() -> Result<()> {
 }
 
 #[test]
+fn decrypt_keydir_flag_forms() -> Result<()> {
+    let key_file = assert_fs::NamedTempFile::new(PUB_KEY)?;
+    fs::write(key_file.path(), PRIV_KEY)?;
+    let keydir = key_file.parent().unwrap();
+
+    let file = assert_fs::NamedTempFile::new("secrets.ejson")?;
+    fs::write(
+        file.path(),
+        serde_json::json!({
+            "_public_key": PUB_KEY,
+            "some":"EJ[1:l6yw664nxaddSXGiWUZfuVeoUSpTFHzqAyCpfF8Awxc=:xOfucLDkACGlPCyJ6QViggEidVswUlsH:B/f3DJMkdZHF+Wu9F6XUFwuTmxyfBA==]"
+        })
+        .to_string(),
+    )?;
+
+    // Like upstream EJSON, keydir is a global flag with a -k shorthand, so it can come before or
+    // after the subcommand.
+    let (keydir, path) = (keydir.to_str().unwrap(), file.path().to_str().unwrap());
+    let forms = [
+        ["decrypt", path, "-k", keydir],
+        ["-k", keydir, "decrypt", path],
+        ["--keydir", keydir, "decrypt", path],
+    ];
+
+    for args in forms {
+        cargo_bin_cmd!()
+            .env_remove("EJSON_KEYDIR")
+            .args(args)
+            .assert()
+            .success()
+            .stdout(predicates::str::contains(r#""some": "secret""#));
+    }
+
+    Ok(())
+}
+
+#[test]
 fn decrypt_ejson_keydir() -> Result<()> {
     let key_file = assert_fs::NamedTempFile::new(PUB_KEY)?;
     fs::write(key_file.path(), PRIV_KEY)?;

@@ -1,6 +1,6 @@
 use std::{fs, io::Write};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use rejson::{self, Key, KeyPair, SecretsFile, SecretsManifest, SecretsMap};
 
@@ -16,6 +16,11 @@ const KUBE_SECRETS_KEY: &str = "kubernetes";
 #[derive(Parser)]
 #[command(author, about, version)]
 struct Cli {
+    // Global (like upstream EJSON), so it can be given before or after the subcommand.
+    /// The directory containing EJSON private keys.
+    #[arg(short, long, env = "EJSON_KEYDIR", global = true, default_value = DEFAULT_KEYDIR)]
+    keydir: String,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -39,9 +44,6 @@ enum Commands {
         /// The file to decrypt.
         file: String,
 
-        #[arg(env = "EJSON_KEYDIR", long)]
-        keydir: Option<String>,
-
         /// Read the private key from stdin.
         #[arg(long)]
         key_from_stdin: bool,
@@ -58,9 +60,6 @@ enum Commands {
     /// Generate a new EJSON key pair.
     #[command(alias = "g")]
     Keygen {
-        #[arg(env = "EJSON_KEYDIR", long)]
-        keydir: Option<String>,
-
         /// Write the private key to the key dir.
         #[arg(short, long)]
         write: bool,
@@ -70,9 +69,6 @@ enum Commands {
     Env {
         /// The file to decrypt.
         file: String,
-
-        #[arg(env = "EJSON_KEYDIR", long)]
-        keydir: Option<String>,
 
         /// Read the private key from stdin.
         #[arg(long)]
@@ -121,9 +117,6 @@ enum Commands {
         /// The file to decrypt.
         file: String,
 
-        #[arg(env = "EJSON_KEYDIR", long)]
-        keydir: Option<String>,
-
         /// Read the private key from stdin.
         #[arg(long)]
         key_from_stdin: bool,
@@ -136,26 +129,24 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    let keydir = cli.keydir;
 
     match cli.command {
         Commands::Encrypt { file } => encrypt(file),
         Commands::Decrypt {
             file,
-            keydir,
             key_from_stdin,
             out,
             strip_key,
         } => decrypt(file, keydir, key_from_stdin, out, strip_key),
-        Commands::Keygen { keydir, write } => keygen(keydir, write),
+        Commands::Keygen { write } => keygen(keydir, write),
         Commands::Env {
             file,
-            keydir,
             key_from_stdin,
             out,
         } => export_env(file, keydir, key_from_stdin, out),
         Commands::KubeSecrets {
             file,
-            keydir,
             key_from_stdin,
             out,
         } => kube_secrets_manifest(file, keydir, key_from_stdin, out),
@@ -177,13 +168,7 @@ fn encrypt(files: Vec<String>) -> Result<()> {
     })
 }
 
-fn decrypt(
-    file: String,
-    keydir: Option<String>,
-    key_from_stdin: bool,
-    out: Option<String>,
-    strip_key: bool,
-) -> Result<()> {
+fn decrypt(file: String, keydir: String, key_from_stdin: bool, out: Option<String>, strip_key: bool) -> Result<()> {
     let mut secrets_file = SecretsFile::load(file)?;
 
     let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
@@ -205,13 +190,7 @@ fn decrypt(
     Ok(())
 }
 
-fn keygen(keydir: Option<String>, write: bool) -> Result<()> {
-    if write && keydir.is_none() {
-        return Err(anyhow::anyhow!(
-            "Either EJSON_KEYDIR must be set or --keydir must be supplied"
-        ));
-    }
-
+fn keygen(keydir: String, write: bool) -> Result<()> {
     let pair = KeyPair::generate().unwrap();
     println!("Public Key:");
     println!("{}", pair.public_key());
@@ -222,7 +201,7 @@ fn keygen(keydir: Option<String>, write: bool) -> Result<()> {
         return Ok(());
     }
 
-    let path = std::path::Path::new(&keydir.unwrap()).join(pair.public_key());
+    let path = std::path::Path::new(&keydir).join(pair.public_key());
     let mut options = fs::OpenOptions::new();
     options.write(true).create(true).truncate(true);
 
@@ -230,11 +209,18 @@ fn keygen(keydir: Option<String>, write: bool) -> Result<()> {
     #[cfg(unix)]
     std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o400);
 
-    options.open(path)?.write_all(pair.private_key().as_bytes())?;
-    Ok(())
+    options
+        .open(&path)
+        .and_then(|mut file| file.write_all(pair.private_key().as_bytes()))
+        .with_context(|| {
+            format!(
+                "Failed to write private key to {} (does the keydir exist and is it writable?)",
+                path.display()
+            )
+        })
 }
 
-fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool, out: Option<String>) -> Result<()> {
+fn export_env(file: String, keydir: String, key_from_stdin: bool, out: Option<String>) -> Result<()> {
     let mut secrets_file = SecretsFile::load(file)?;
 
     let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
@@ -281,12 +267,7 @@ fn is_env_var_name(key: &str) -> bool {
         && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
-fn kube_secrets_manifest(
-    file: String,
-    keydir: Option<String>,
-    key_from_stdin: bool,
-    out: Option<String>,
-) -> Result<()> {
+fn kube_secrets_manifest(file: String, keydir: String, key_from_stdin: bool, out: Option<String>) -> Result<()> {
     let secrets_file = SecretsFile::load(&file)?;
 
     // Fail on a non-object "kubernetes" value rather than silently producing an empty manifest (a
@@ -317,25 +298,27 @@ fn kube_secrets_manifest(
 }
 
 /// Load the private key from the keydir or stdin.
-fn load_private_key(secrets_file: &SecretsFile, keydir: Option<String>, key_from_stdin: bool) -> Result<Key> {
+fn load_private_key(secrets_file: &SecretsFile, keydir: String, key_from_stdin: bool) -> Result<Key> {
     if key_from_stdin {
         let mut buffer = String::new();
         std::io::stdin().read_line(&mut buffer)?;
         return buffer.trim().parse();
     }
 
-    let private_key = match keydir {
-        // Load the key from the keydir.
-        Some(keydir) => rejson::load_private_key(secrets_file, &keydir)?,
-        // Read the key default keydir.
-        None => rejson::load_private_key(secrets_file, DEFAULT_KEYDIR)?,
-    };
-
-    Ok(private_key)
+    rejson::load_private_key(secrets_file, &keydir)
 }
 
 #[test]
 fn verify_cli() {
     use clap::CommandFactory;
     Cli::command().debug_assert()
+}
+
+#[test]
+fn keydir_defaults_to_upstream_location() {
+    use clap::CommandFactory;
+
+    let cmd = Cli::command();
+    let keydir = cmd.get_arguments().find(|a| a.get_id() == "keydir").unwrap();
+    assert_eq!([std::ffi::OsStr::new(DEFAULT_KEYDIR)], keydir.get_default_values());
 }

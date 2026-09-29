@@ -72,3 +72,20 @@ fn generate_and_write_file_to_ejson_keydir() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn write_to_missing_keydir_names_the_path() -> Result<()> {
+    let temp = assert_fs::TempDir::new()?;
+    let keydir = temp.path().join("missing");
+
+    cargo_bin_cmd!()
+        .arg("keygen")
+        .arg("--write")
+        .arg("-k")
+        .arg(&keydir)
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(keydir.to_str().unwrap()));
+
+    Ok(())
+}
