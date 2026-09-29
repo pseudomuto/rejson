@@ -1,6 +1,7 @@
 use core::fmt;
 use std::collections::{BTreeMap, HashMap};
 
+use anyhow::{Result, anyhow};
 use base64::Engine;
 
 const KEY_DELIMITER: &str = ".";
@@ -14,28 +15,35 @@ pub struct SecretsManifest<'a> {
 }
 
 impl<'a> SecretsManifest<'a> {
-    pub fn new(from: HashMap<&'a str, &'a str>) -> Self {
+    /// Creates a new [SecretsManifest] from keys in the form `secret_name.key`. Returns an error if
+    /// any key isn't nested under a secret name.
+    pub fn new(from: HashMap<&'a str, &'a str>) -> Result<Self> {
         // Convert the delimited keys and values into a HashMap of secret name => <Key, Value>.
         //
         // NB: Converts to BTreeMap after filtering so values are sorted by key.
-        let resources =
-            from.into_iter()
-                .collect::<BTreeMap<&str, &str>>()
-                .iter()
-                .fold(BTreeMap::new(), |mut map, (k, v)| {
-                    // secret.key => name = secret, key = key
-                    // secret.[file.ext] => name = secret, key = file.ext
-                    let name = &k[..k.find(KEY_DELIMITER).unwrap()];
-                    let key = &k[k.find(KEY_DELIMITER).unwrap() + 1..];
+        let resources = from
+            .into_iter()
+            .collect::<BTreeMap<&str, &str>>()
+            .into_iter()
+            .try_fold(BTreeMap::new(), |mut map, (k, v)| {
+                // secret.key => name = secret, key = key
+                // secret.[file.ext] => name = secret, key = file.ext
+                let (name, key) = k.split_once(KEY_DELIMITER).ok_or_else(|| {
+                    anyhow!(
+                        "Expected {:?} to be an object of secret values (e.g. {{\"{}\": {{\"KEY\": \"value\"}}}})",
+                        k,
+                        k
+                    )
+                })?;
 
-                    // Update values (creating if necessary).
-                    let values: &mut BTreeMap<&str, &str> = map.entry(name).or_default();
-                    values.insert(key.trim_matches(&['[', ']'] as &[_]), v);
+                // Update values (creating if necessary).
+                let values: &mut BTreeMap<&str, &str> = map.entry(name).or_default();
+                values.insert(key.trim_matches(&['[', ']'] as &[_]), v);
 
-                    map
-                });
+                Ok::<_, anyhow::Error>(map)
+            })?;
 
-        Self { inner: resources }
+        Ok(Self { inner: resources })
     }
 }
 
@@ -94,8 +102,16 @@ mod tests {
             ),
         ]);
 
-        let manifest = SecretsManifest::new(secrets);
+        let manifest = SecretsManifest::new(secrets).unwrap();
         assert_eq!(exp, manifest.inner);
+    }
+
+    #[test]
+    fn key_without_secret_name() {
+        let secrets = HashMap::from([("database.DATABASE_URL", "pgsql://db_url"), ("orphan", "value")]);
+
+        let err = SecretsManifest::new(secrets).err().expect("should fail");
+        assert!(err.to_string().contains("orphan"), "{}", err);
     }
 
     #[test]
@@ -126,7 +142,7 @@ mod tests {
             ),
         ]);
 
-        let manifest = SecretsManifest::new(secrets);
+        let manifest = SecretsManifest::new(secrets).unwrap();
         assert_eq!(exp, manifest.inner);
     }
 }

@@ -43,21 +43,23 @@ impl SecretsFile {
             .try_for_each(|(k, v)| transform(k, v, &transformer))
     }
 
-    /// Returns a map of all direct children of the supplied key with scalar values.
-    pub fn children(&self, root_key: &str) -> Option<HashMap<&str, &str>> {
-        self.value.get(root_key).map(|value| {
-            value
-                .as_object()
-                .unwrap()
-                .iter()
-                .fold(HashMap::new(), |mut acc, (key, value)| {
-                    if value.is_string() {
-                        acc.insert(key.as_str(), value.as_str().unwrap());
-                    }
+    /// Returns a map of all direct children of the supplied key with string values, or `None` if
+    /// the key doesn't exist. Returns an error if the key exists but isn't an object.
+    pub fn children(&self, root_key: &str) -> Result<Option<HashMap<&str, &str>>> {
+        let Some(value) = self.value.get(root_key) else {
+            return Ok(None);
+        };
 
-                    acc
-                })
-        })
+        let object = value
+            .as_object()
+            .ok_or_else(|| anyhow::anyhow!("Expected {:?} to be a JSON object", root_key))?;
+
+        Ok(Some(
+            object
+                .iter()
+                .filter_map(|(key, value)| value.as_str().map(|v| (key.as_str(), v)))
+                .collect(),
+        ))
     }
 
     /// Returns a new [SecretsFile] that is a clone of this one without the _public_key field.
@@ -82,9 +84,14 @@ impl FromStr for SecretsFile {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            value: serde_json::from_str(s)?,
-        })
+        let value: Value = serde_json::from_str(s)?;
+
+        // Everything else in here assumes the top-level value is an object.
+        if !value.is_object() {
+            anyhow::bail!("Expected the secrets file to contain a JSON object at the top level");
+        }
+
+        Ok(Self { value })
     }
 }
 
@@ -150,6 +157,13 @@ mod test {
     }
 
     #[test]
+    fn from_str_requires_object() {
+        for given in ["[]", r#""str""#, "1"] {
+            assert!(given.parse::<SecretsFile>().is_err(), "{} should be rejected", given);
+        }
+    }
+
+    #[test]
     fn transform() {
         let data = json!({
           "_public_key": "anything",
@@ -196,10 +210,13 @@ mod test {
         });
 
         let file = SecretsFile { value: data };
-        let env = file.children("environment").unwrap();
+        let env = file.children("environment").unwrap().unwrap();
         assert_eq!(HashMap::from([("test", "value"), ("other", "thing"),]), env);
 
-        assert!(file.children("wat").is_none());
+        assert!(file.children("wat").unwrap().is_none());
+
+        // Present but not an object.
+        assert!(file.children("other").is_err());
     }
 
     #[test]
