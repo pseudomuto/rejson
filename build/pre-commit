@@ -3,10 +3,7 @@ set -euo pipefail
 
 main() {
   echo "Running cargo fmt to check for style issues..."
-  local diff=$(cargo +nightly fmt -- --check)
-  local result=$?
-
-  if [[ ${result} -ne 0 ]]; then
+  if ! cargo +nightly fmt -- --check >/dev/null; then
     echo 'There are some code style issues, run `cargo fmt` first.' 1>&2
     exit 1
   fi

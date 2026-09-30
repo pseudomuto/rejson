@@ -50,17 +50,17 @@ impl FromStr for Key {
             return Err(anyhow!("InvalidKey (bad length)"));
         }
 
-        Ok(Self(bytes_from_hex(s).as_slice().try_into()?))
+        Ok(Self(bytes_from_hex(s)?.as_slice().try_into()?))
     }
 }
 
-fn bytes_from_hex(s: &str) -> Vec<u8> {
+fn bytes_from_hex(s: &str) -> Result<Vec<u8>> {
     (0..s.len())
         .step_by(2)
         .map(|i| {
             s.get(i..i + 2)
                 .and_then(|sub| u8::from_str_radix(sub, 16).ok())
-                .unwrap()
+                .ok_or_else(|| anyhow!("InvalidKey (expected hex characters)"))
         })
         .collect()
 }
@@ -155,6 +155,13 @@ mod tests {
 
         let parsed = key_str.parse().unwrap();
         assert_eq!(key, parsed);
+    }
+
+    #[test]
+    fn key_from_invalid_hex() {
+        assert!("z".repeat(2 * KEY_SIZE).parse::<Key>().is_err());
+        // 64 bytes, but multi-byte chars can't be split into 2-byte hex pairs.
+        assert!("é".repeat(KEY_SIZE).parse::<Key>().is_err());
     }
 
     #[test]

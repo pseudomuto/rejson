@@ -223,9 +223,15 @@ fn keygen(keydir: Option<String>, write: bool) -> Result<()> {
     }
 
     let path = std::path::Path::new(&keydir.unwrap()).join(pair.public_key());
-    std::fs::File::create(path)?
-        .write_all(pair.private_key().as_bytes())
-        .map_err(anyhow::Error::msg)
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create(true).truncate(true);
+
+    // Private keys should only be readable by the owner (matches upstream EJSON).
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o400);
+
+    options.open(path)?.write_all(pair.private_key().as_bytes())?;
+    Ok(())
 }
 
 fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool, out: Option<String>) -> Result<()> {
@@ -234,9 +240,15 @@ fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool, out: O
     let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
     secrets_file.transform(rejson::decrypt(&secrets_file, private_key)?)?;
 
-    match secrets_file.children(ENV_KEY) {
+    match secrets_file.children(ENV_KEY)? {
         Some(map) => {
             let map = &map;
+
+            // Keys are written unescaped, so anything other than a plain identifier could inject
+            // shell code when the output is eval'd. Check them all before writing anything.
+            if let Some(key) = map.keys().find(|k| !is_env_var_name(k)) {
+                anyhow::bail!("{:?} is not a valid environment variable name", key);
+            }
 
             out.map_or_else(
                 || {
@@ -261,6 +273,14 @@ fn export_env(file: String, keydir: Option<String>, key_from_stdin: bool, out: O
     }
 }
 
+/// Returns whether the supplied key is a valid POSIX shell variable name (`[A-Za-z_][A-Za-z0-9_]*`).
+fn is_env_var_name(key: &str) -> bool {
+    let mut chars = key.chars();
+
+    chars.next().is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
 fn kube_secrets_manifest(
     file: String,
     keydir: Option<String>,
@@ -268,16 +288,21 @@ fn kube_secrets_manifest(
     out: Option<String>,
 ) -> Result<()> {
     let secrets_file = SecretsFile::load(&file)?;
+
+    // Fail on a non-object "kubernetes" value rather than silently producing an empty manifest (a
+    // scalar would flatten to a key without the "kubernetes." prefix and be filtered out below).
+    secrets_file.children(KUBE_SECRETS_KEY)?;
+
     let private_key = load_private_key(&secrets_file, keydir, key_from_stdin)?;
     let secrets = SecretsMap::load_and_decrypt(&file, private_key)?;
 
+    let prefix = format!("{}.", KUBE_SECRETS_KEY);
     let manifest = SecretsManifest::new(
         secrets
             .iter()
-            .filter(|(k, _)| k.starts_with(KUBE_SECRETS_KEY))
-            .map(|(k, v)| (k.strip_prefix(&format!("{}.", KUBE_SECRETS_KEY)).unwrap(), v.as_str()))
+            .filter_map(|(k, v)| k.strip_prefix(&prefix).map(|k| (k, v.as_str())))
             .collect(),
-    );
+    )?;
 
     out.map_or_else(
         || {

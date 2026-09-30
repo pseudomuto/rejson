@@ -7,7 +7,7 @@ mod map;
 
 use std::path::Path;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 pub use crypto::{Key, KeyPair};
 pub use json::SecretsFile;
 pub use kube::SecretsManifest;
@@ -36,7 +36,7 @@ pub fn compact() -> Result<impl Fn(String) -> Result<String>> {
 /// Returns a transform function for use with [SecretsFile::transform] that will encrypt all eligible
 /// values (that aren't already encrypted).
 pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Fn(String) -> Result<String> + use<>> {
-    let public_key = secrets_file.public_key().unwrap();
+    let public_key = required_public_key(secrets_file)?;
     let ephemeral_key = KeyPair::generate()?;
     let encryptor = ephemeral_key.encryptor(public_key)?;
 
@@ -54,7 +54,7 @@ pub fn encrypt(secrets_file: &SecretsFile) -> Result<impl Fn(String) -> Result<S
 /// done by creating a [KeyPair] consisting of the public key from the file and the supplied
 /// private key.
 pub fn decrypt(secrets_file: &SecretsFile, private_key: Key) -> Result<impl Fn(String) -> Result<String> + use<>> {
-    let public_key = secrets_file.public_key().unwrap();
+    let public_key = required_public_key(secrets_file)?;
     let decryptor = KeyPair::new(public_key, private_key).decryptor();
 
     Ok(move |s: String| {
@@ -70,8 +70,14 @@ pub fn decrypt(secrets_file: &SecretsFile, private_key: Key) -> Result<impl Fn(S
 /// Loads the private key from disk, searching for a file named as the public key defined in the
 /// secrets file.
 pub fn load_private_key(secrets_file: &SecretsFile, keydir: &str) -> Result<Key> {
-    let public_key = secrets_file.public_key().unwrap();
+    let public_key = required_public_key(secrets_file)?;
     Key::from_file(Path::new(keydir).join(public_key.to_string()))
+}
+
+fn required_public_key(secrets_file: &SecretsFile) -> Result<Key> {
+    secrets_file
+        .public_key()
+        .context("Expected a hex-encoded, 32-byte _public_key at the top level of the secrets file")
 }
 
 #[cfg(test)]
@@ -92,5 +98,21 @@ mod tests {
             assert_eq!(want, tf(given.to_string())?);
             Ok(())
         })
+    }
+
+    #[test]
+    fn missing_public_key() -> Result<()> {
+        let file: SecretsFile = r#"{"some": "value"}"#.parse()?;
+
+        let err = encrypt(&file).err().expect("encrypt should fail");
+        assert!(err.to_string().contains("_public_key"), "{}", err);
+
+        let err = decrypt(&file, Key::random()).err().expect("decrypt should fail");
+        assert!(err.to_string().contains("_public_key"), "{}", err);
+
+        let err = load_private_key(&file, "/tmp").expect_err("load_private_key should fail");
+        assert!(err.to_string().contains("_public_key"), "{}", err);
+
+        Ok(())
     }
 }
