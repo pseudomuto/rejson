@@ -12,7 +12,7 @@ const KEY_SIZE: usize = 32;
 const NONCE_SIZE: usize = 24;
 
 /// A newtype representing an encryption key (32-byte array)
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct Key(pub(crate) [u8; KEY_SIZE]);
 
 impl Key {
@@ -39,6 +39,14 @@ impl fmt::Display for Key {
     /// Writes the hex-encoded representation of this key.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0.map(|b| format!("{:02x}", b)).join(""))
+    }
+}
+
+impl fmt::Debug for Key {
+    /// Always redacted, since the same type holds private keys. Use [Display](fmt::Display) to
+    /// get the hex-encoded value.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Key(<redacted>)")
     }
 }
 
@@ -92,10 +100,20 @@ impl fmt::Display for Nonce {
 }
 
 /// A struct representing a Curve25519 key pair (public and private).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct KeyPair {
     pub(crate) public: Key,
     pub(crate) private: Key,
+}
+
+impl fmt::Debug for KeyPair {
+    /// Shows the hex-encoded public key and redacts the private key.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("KeyPair")
+            .field("public", &format_args!("{}", self.public))
+            .field("private", &self.private)
+            .finish()
+    }
 }
 
 impl KeyPair {
@@ -122,12 +140,29 @@ impl KeyPair {
         self.private.to_string()
     }
 
-    /// Creates a new [Encryptor] using the supplied emphermal key and this [KeyPair].
+    /// Creates a new [Encryptor] from this (typically ephemeral) [KeyPair] and the peer's public
+    /// key.
+    ///
+    /// ```
+    /// use rejson::{Decryptor, Encryptor, KeyPair};
+    ///
+    /// # fn main() -> anyhow::Result<()> {
+    /// let durable = KeyPair::generate()?;
+    /// let ephemeral = KeyPair::generate()?;
+    ///
+    /// let encryptor: Encryptor = ephemeral.encryptor(durable.public_key().parse()?)?;
+    /// let decryptor: Decryptor = durable.decryptor();
+    ///
+    /// let ciphertext = encryptor.encrypt("ssshhhhh")?;
+    /// assert_eq!("ssshhhhh", decryptor.decrypt(ciphertext)?);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn encryptor(&self, peer_public: Key) -> Result<Encryptor> {
         Encryptor::create(self.clone(), peer_public)
     }
 
-    /// Createa s new [Decryptor] using this key pair.
+    /// Creates a new [Decryptor] using this key pair.
     pub fn decryptor(&self) -> Decryptor {
         Decryptor::new(self.clone())
     }
@@ -172,6 +207,21 @@ mod tests {
         let pair = KeyPair::new(pub_key.clone(), priv_key.clone());
         assert_eq!(pub_key, pair.public);
         assert_eq!(priv_key, pair.private);
+    }
+
+    #[test]
+    fn debug_redacts_private_key() {
+        let pair = KeyPair::generate().unwrap();
+        let private_hex = pair.private_key();
+        let private_bytes = format!("{:?}", pair.private.0);
+
+        for output in [format!("{:?}", pair), format!("{:?}", pair.private)] {
+            assert!(!output.contains(&private_hex), "leaked hex: {}", output);
+            assert!(!output.contains(&private_bytes), "leaked bytes: {}", output);
+        }
+
+        // The public half is safe to show, and is the useful part when debugging.
+        assert!(format!("{:?}", pair).contains(&pair.public_key()));
     }
 
     #[test]
