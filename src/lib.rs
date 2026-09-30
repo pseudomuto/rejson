@@ -8,7 +8,7 @@ mod map;
 use std::path::Path;
 
 use anyhow::{Context, Result};
-pub use crypto::{Key, KeyPair};
+pub use crypto::{Decryptor, Encryptor, Key, KeyPair};
 pub use json::SecretsFile;
 pub use kube::SecretsManifest;
 pub use map::SecretsMap;

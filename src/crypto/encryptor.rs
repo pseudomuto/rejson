@@ -16,11 +16,6 @@ pub struct Encryptor {
 }
 
 impl Encryptor {
-    /// Creates a new [Encryptor] using the supplied key paid, peer public key, and shared key.
-    pub fn new(keys: KeyPair, shared_key: Key) -> Self {
-        Self { keys, shared_key }
-    }
-
     /// Creates a new [Encryptor] from the given [KeyPair] and peer public key. A shared key is
     /// calculated from these values and used to construct the [Encryptor].
     pub fn create(keys: KeyPair, peer_public: Key) -> Result<Self> {

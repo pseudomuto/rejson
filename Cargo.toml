@@ -17,7 +17,6 @@ name = "rejson"
 anyhow = "1.0"
 base64 = "0.22"
 clap = { version = "4.4.2", features = ["derive", "env"] }
-lazy_static = "1.4"
 nacl = "0.5"
 rand = { version = "0.9", features = ["std"] }
 regex = "1.9"

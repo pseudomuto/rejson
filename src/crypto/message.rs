@@ -1,21 +1,21 @@
-use std::{fmt, str::FromStr};
+use std::{fmt, str::FromStr, sync::LazyLock};
 
 use anyhow::{Context, Error};
-use base64::{Engine as _, engine::general_purpose};
-use lazy_static::lazy_static;
+use base64::{
+    Engine as _,
+    engine::{GeneralPurpose, general_purpose},
+};
 use regex::Regex;
 
 use super::keys::{Key, Nonce};
 
-lazy_static! {
-    /// The encoder to use when serializing/deserializing the message.
-    static ref ENCODER: base64::engine::GeneralPurpose = general_purpose::STANDARD;
+/// The encoder to use when serializing/deserializing the message.
+const ENCODER: GeneralPurpose = general_purpose::STANDARD;
 
-    /// A pattern matching stored strings in EJSON format. Which is:
-    /// EJ[<version>:<base64 key>:<base64 nonce>:<base64 encrypted value>]
-    static ref PATTERN: Regex =
-        Regex::new(r"^EJ\[\d:[A-Za-z0-9+=/]{44}:[A-Za-z0-9+=/]{32}:(.+)\]$").unwrap();
-}
+/// A pattern matching stored strings in EJSON format. Which is:
+/// EJ[<version>:<base64 key>:<base64 nonce>:<base64 encrypted value>]
+static PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^EJ\[\d:[A-Za-z0-9+=/]{44}:[A-Za-z0-9+=/]{32}:(.+)\]$").unwrap());
 
 /// A struct representing an encrypted message. This is what is stored in the encrypted field
 /// in EJSON files.

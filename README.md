@@ -102,7 +102,7 @@ docker run --rm -it \
 
 ### Code
 
-```rust
+```rust,no_run
 use std::fs;
 
 use rejson::{KeyPair, SecretsFile};
@@ -122,11 +122,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+You can also encrypt and decrypt individual values directly, without a file:
+
+```rust
+use rejson::{Decryptor, Encryptor, KeyPair};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // The durable key pair's public key is what goes in `_public_key`, and its private key is what
+    // lives in the keydir. Each encryption uses a fresh ephemeral key pair.
+    let durable = KeyPair::generate()?;
+    let encryptor: Encryptor = KeyPair::generate()?.encryptor(durable.public_key().parse()?)?;
+    let decryptor: Decryptor = durable.decryptor();
+
+    let ciphertext = encryptor.encrypt("ssshhhhh")?;
+    assert!(ciphertext.starts_with("EJ[1:"));
+    assert_eq!("ssshhhhh", decryptor.decrypt(&ciphertext)?);
+    Ok(())
+}
+```
+
 See the [_examples_](examples/) directory for more.
 
 ## Development
 
-### Local Setup
+### Local setup
 
 - Make sure you have the nightly toolchain (used for rustfmt only)
 - Add pre-commit to avoid committing malformatted code
@@ -135,7 +154,7 @@ See the [_examples_](examples/) directory for more.
 ln -sf ../../build/pre-commit .git/hooks/pre-commit
 ```
 
-### Cutting a New release
+### Cutting a new release
 
 Run `build/release <new_version>`. This will:
 
