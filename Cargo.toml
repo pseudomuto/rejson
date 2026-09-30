@@ -15,7 +15,7 @@ name = "rejson"
 
 [dependencies]
 anyhow = "1.0"
-base64 = "0.22"
+base64 = "0.23"
 clap = { version = "4.4.2", features = ["derive", "env"] }
 nacl = "0.5"
 rand = { version = "0.9", features = ["std"] }
