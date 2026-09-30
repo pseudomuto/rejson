@@ -1,6 +1,6 @@
 # Stage 1: Build the binary
-FROM rust:1.91.1-alpine AS build
-RUN apk --update --no-cache add ca-certificates=20250911-r0 musl-dev=1.2.5-r10
+FROM rust:1.98.1-alpine AS build
+RUN apk --update --no-cache add ca-certificates=20260909-r0 musl-dev=1.2.6-r2
 WORKDIR /app
 COPY Cargo.toml README.md ./
 COPY src/ ./src/
