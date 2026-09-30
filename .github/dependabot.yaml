@@ -9,9 +9,17 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    # Conventional commit subjects (also used for PR titles), e.g. "ci(deps): bump ...".
+    commit-message:
+      prefix: ci
+      include: scope
 
   # Not grouped: for 0.x crates a minor bump is breaking, and one failing bump would block the rest.
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
+    # e.g. "build(deps): update rand requirement ..." (or "build(deps-dev): ..." for dev deps).
+    commit-message:
+      prefix: build
+      include: scope
