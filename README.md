@@ -5,14 +5,13 @@
 [![Docs](https://img.shields.io/badge/docs-rs-blue)](https://docs.rs/rejson/latest)
 [![codecov](https://codecov.io/gh/pseudomuto/rejson/graph/badge.svg?token=pEmI3xM9Ae)](https://codecov.io/gh/pseudomuto/rejson)
 
-`rejson` is a utility for managing a collection of secrets in source control. The secrets are encrypted using
-[public key], [elliptic curve] cryptography ([NaCl] [Box]: [Curve25519] + [Salsa20] + [Poly1305-AES]). Secrets are
-collected in a JSON file, in which all the string values are encrypted. Public keys are embedded in the file, and
-the decrypter looks up the corresponding private key from its local filesystem.
+`rejson` is a utility for managing a collection of secrets in source control. The secrets are encrypted using [public
+key], [elliptic curve] cryptography ([NaCl] [Box]: [Curve25519] + [Salsa20] + [Poly1305-AES]). Secrets are collected in
+a JSON file, in which all the string values are encrypted. Public keys are embedded in the file, and the decrypter looks
+up the corresponding private key from its local filesystem.
 
-> This is a rust port of [EJSON] with a few extra bells and whistles. Full credit should go to the team that made
-> EJSON. No innovation here other than needing Rust bindings and wanting a few extra features I'm not sure belonged
-> upstream.
+> This is a rust port of [EJSON] with a few extra bells and whistles. Full credit should go to the team that made EJSON.
+> No innovation here other than needing Rust bindings and wanting a few extra features I'm not sure belonged upstream.
 
 [public key]: http://en.wikipedia.org/wiki/Public-key_cryptography
 [elliptic curve]: http://en.wikipedia.org/wiki/Elliptic_curve_cryptography
@@ -36,7 +35,7 @@ curl -fsSL https://github.com/pseudomuto/rejson/releases/download/v0.2.0/rejson_
 `cargo install rejson`
 
 Since this is a drop-in replacement for `ejson` you can add `alias ejson="rejson"` if you like. The expectation is that
-this is 100% compatible with `ejson` and it only additive. If that's not the case, it's a bug, and I'd appreciate you
+this is 100% compatible with `ejson` and is only additive. If that's not the case, it's a bug, and I'd appreciate you
 filing an issue.
 
 ### Additions to EJSON

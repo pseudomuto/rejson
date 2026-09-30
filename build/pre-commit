@@ -2,11 +2,19 @@
 set -euo pipefail
 
 main() {
-  echo "Running cargo fmt to check for style issues..."
-  if ! cargo +nightly fmt -- --check >/dev/null; then
-    echo 'There are some code style issues, run `cargo fmt` first.' 1>&2
+  if ! command -v task >/dev/null; then
+    echo 'task not found. Commit from the nix dev shell (`nix develop`, or direnv) so the checks can run.' 1>&2
     exit 1
   fi
+
+  echo "Running cargo fmt to check for style issues..."
+  if ! task fmt-check >/dev/null 2>&1; then
+    echo 'There are some code style issues, run `task fmt` first.' 1>&2
+    exit 1
+  fi
+
+  echo "Checking that the project compiles on the MSRV..."
+  task check:msrv
 }
 
 main "$@"

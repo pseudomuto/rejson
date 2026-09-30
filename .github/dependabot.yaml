@@ -1,0 +1,17 @@
+version: 2
+
+updates:
+  # Actions are pinned by SHA with the tag in a trailing comment; Dependabot updates both.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Not grouped: for 0.x crates a minor bump is breaking, and one failing bump would block the rest.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly

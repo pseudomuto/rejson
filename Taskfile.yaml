@@ -52,6 +52,11 @@ tasks:
     cmds:
       - cargo check --all-targets --all-features
 
+  check:msrv:
+    desc: Check that the project compiles on the MSRV (rust-version in Cargo.toml)
+    cmds:
+      - nix develop .#msrv --command cargo check --all-targets --all-features
+
   clean:
     desc: Clean build artifacts
     cmds:
